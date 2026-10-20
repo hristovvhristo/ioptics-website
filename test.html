@@ -64,6 +64,10 @@ p{margin:0}
 .lens.second{border-color:var(--line)}
 .lens.second .tag{color:var(--muted)}
 .why{color:var(--muted);font-size:15px}
+.extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.extra{background:var(--bg);border-radius:16px;padding:16px 18px}
+.extra h4{margin:0 0 4px;font-size:17px}
+.extra p{color:var(--muted);font-size:15px}
 .cta{background:var(--ink);color:#FFFFFF;border-radius:20px;padding:22px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
 .cta p{color:#C3CFDA;font-size:15px}
 .cta .num{color:#FFFFFF;font-weight:600;user-select:all}
@@ -126,6 +130,7 @@ p{margin:0}
       <h1 id="r-title" style="margin-bottom:0"></h1>
       <div id="r-notices" class="stack"></div>
       <div id="r-lenses" class="stack"></div>
+      <div id="r-extras-wrap" class="stack" hidden><h3 style="margin:0">Допълнително за вашия начин на живот</h3><div id="r-extras" class="extras"></div></div>
       <div class="why"><strong>Защо тази препоръка</strong><ul id="r-why"></ul></div>
       <div class="cta">
         <div>
@@ -134,7 +139,7 @@ p{margin:0}
         </div>
         <a class="btn primary" href="https://calendar.app.google/NS3qrNB96xKo7z7Z8" target="_blank" rel="noopener">Запазете час</a>
       </div>
-      <p class="fine">Тестът е ориентировъчен и не замества преглед. Точната корекция и вида лещи определяме след измерване в магазина.</p>
+      <p class="fine">Тестът е ориентировъчен и не замества консултация от очен специалист. Точната корекция и вида лещи се определя след консултация с очен специалист.</p>
       <div class="nav"><button class="btn" id="restart" type="button">Направете теста отново</button></div>
     </div>
   </section>
@@ -155,8 +160,8 @@ p{margin:0}
      opts:[['lt1','Преди по-малко от година'],['y2','Преди 1 – 2 години'],['gt2','Преди повече от 2 години'],['never','Никога']]},
     {id:'scr', type:'single', title:'Колко часа на ден гледате екран?', hint:'Компютър, телефон и таблет общо.',
      opts:[['lt2','До 2 часа'],['h5','2 – 5 часа'],['gt5','Над 5 часа']]},
-    {id:'day', type:'single', title:'Кое описва деня ви най-добре?', hint:'',
-     opts:[['drive','Много шофиране'],['office','Работа на бюро и компютър'],['active','Активен, навън, спорт'],['mixed','Смесено – от всичко по малко']]}
+    {id:'day', type:'multi', title:'Кое от тези се отнася за вас?', hint:'Отбележете всичко подходящо – така ще ви предложим и решения за начина ви на живот.',
+     opts:[['drive','Шофирам много'],['office','Работя на бюро и компютър'],['sport','Спортувам','фитнес, бягане, колоездене, игри с топка'],['water','Водни или зимни спортове, риболов'],['sun','Силната слънчева светлина ме дразни'],['none','Нищо от изброените']]}
   ];
   var LABEL = {};
   Q.forEach(function(q){ LABEL[q.id] = {}; q.opts.forEach(function(o){ LABEL[q.id][o[0]] = o[1]; }); });
@@ -221,7 +226,11 @@ p{margin:0}
     var heavyScreen = has('scr','gt5') || has('day','office');
     var nearNeed = has('sym','near') || has('cur','near') || has('cur','prog') || age === 'a55';
     var farNeed = has('sym','far') || has('cur','far') || has('cur','prog');
-    var why = [], notices = [], lenses = [];
+    var why = [], notices = [], lenses = [], extras = [];
+    if (has('day','sport')) extras.push(['Спортни очила или контактни лещи','Здрави рамки, които стоят стабилно при движение, или контактни лещи за пълна свобода. И двата варианта могат да са с вашия диоптър.']);
+    if (has('day','water')) extras.push(['Поляризирани очила','Премахват отблясъците от вода и сняг – по-ясна картина и по-малко умора за очите. Могат да бъдат и с диоптър.']);
+    if (has('day','sun')) extras.push(['Фотосоларни лещи или втори чифт слънчеви очила','Фотосоларните лещи потъмняват сами на слънце и изсветляват на закрито. Другият вариант е отделен чифт слънчеви очила с вашия диоптър.']);
+    if (has('day','drive') || has('sym','night')) extras.push(['Лещи за шофиране','Покритие и дизайн, които намаляват заслепяването от фарове и подобряват видимостта при дъжд и вечер.']);
 
     function notice(kind, title, text){ notices.push([kind,title,text]); }
     function lens(tag, name, text){ lenses.push([tag,name,text]); }
@@ -292,6 +301,9 @@ p{margin:0}
     notices.forEach(function(n){ var d = document.createElement('div'); d.className = 'notice ' + n[0]; d.innerHTML = '<h3></h3><p></p>'; d.firstChild.textContent = n[1]; d.lastChild.textContent = n[2]; nb.appendChild(d); });
     var lb = $('r-lenses'); lb.innerHTML = '';
     lenses.forEach(function(l, k){ var d = document.createElement('div'); d.className = 'lens' + (k ? ' second' : ''); d.innerHTML = '<span class="tag"></span><h2></h2><p></p>'; d.children[0].textContent = l[0]; d.children[1].textContent = l[1]; d.children[2].textContent = l[2]; lb.appendChild(d); });
+    var eb = $('r-extras'); eb.innerHTML = '';
+    extras.forEach(function(e){ var d = document.createElement('div'); d.className = 'extra'; d.innerHTML = '<h4></h4><p></p>'; d.firstChild.textContent = e[0]; d.lastChild.textContent = e[1]; eb.appendChild(d); });
+    $('r-extras-wrap').hidden = !extras.length;
     var wb = $('r-why'); wb.innerHTML = '';
     if (!why.length) why.push('Според възрастта и отговорите ви.');
     why.forEach(function(w){ var li = document.createElement('li'); li.textContent = w; wb.appendChild(li); });
