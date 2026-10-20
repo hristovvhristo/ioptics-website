@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тест за зрението – iOptics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Безплатен онлайн тест: имате ли нужда от очила, от какъв вид – еднофокусни, прогресивни или офис-прогресивни, и кога да посетите очен лекар.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600&amp;family=Unbounded:wght@500;700&amp;display=swap">
+<style>
+/* Layout: one narrow column, one question per screen, big tappable answers; same palette and faces as the iOptics site (single light look, deliberate). */
+:root{
+  --bg:#F5F6F3; --surface:#FFFFFF; --ink:#10233A; --muted:#4A5E6E; --line:#D9DEE3;
+  --accent:#2F45D8; --accent-soft:#E3E7FD; --accent-ink:#FFFFFF;
+  --ok:#2F7A12; --ok-soft:#E4F6D6; --warn:#9A5400; --warn-soft:#FDEED6; --alert:#B3261E; --alert-soft:#FCE4E1;
+  --display:'Unbounded', 'Arial Black', sans-serif; --body:'Commissioner', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+a{color:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 56px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.top img{height:44px;width:auto;display:block}
+.top a.back{font-weight:500;text-decoration:none;color:var(--ink);padding:10px 0}
+.eyebrow{margin:0 0 10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;font-size:13px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,5.4vw,40px);line-height:1.12;letter-spacing:-1px;margin:0 0 14px;text-wrap:balance}
+h2{font-family:var(--display);font-weight:500;font-size:clamp(21px,3.6vw,26px);line-height:1.25;letter-spacing:-.4px;margin:0 0 8px;text-wrap:balance}
+h3{font-size:19px;margin:0 0 6px}
+p{margin:0}
+.lead{color:var(--muted);max-width:60ch}
+.card{background:var(--surface);border-radius:24px;padding:clamp(20px,4vw,36px)}
+.progress{display:flex;align-items:center;gap:12px;margin-bottom:22px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .25s ease}
+.hint{color:var(--muted);font-size:15px;margin:2px 0 18px}
+.options{display:grid;gap:10px;margin-bottom:24px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--bg);
+  border:2px solid transparent;border-radius:16px;padding:14px 16px;min-height:56px;cursor:pointer}
+.opt:hover{border-color:var(--line)}
+.opt:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.mark{flex:none;width:22px;height:22px;border:2px solid var(--muted);display:grid;place-items:center}
+.opt.single .mark{border-radius:50%}
+.opt.multi .mark{border-radius:6px}
+.opt[aria-pressed="true"] .mark{border-color:var(--accent);background:var(--accent)}
+.opt[aria-pressed="true"] .mark::after{content:"";width:8px;height:8px;background:var(--accent-ink);border-radius:2px}
+.opt small{display:block;color:var(--muted);font-size:14px}
+.nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border-radius:999px;padding:14px 26px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.stack{display:grid;gap:16px}
+.notice{border-radius:18px;padding:18px 20px}
+.notice h3{margin-bottom:6px}
+.notice.alert{background:var(--alert-soft)} .notice.alert h3{color:var(--alert)}
+.notice.warn{background:var(--warn-soft)} .notice.warn h3{color:var(--warn)}
+.notice.ok{background:var(--ok-soft)} .notice.ok h3{color:var(--ok)}
+.notice ul,.why ul{margin:8px 0 0;padding-left:20px}
+.lens{border:2px solid var(--accent);border-radius:20px;padding:20px 22px;background:var(--surface)}
+.lens .tag{display:inline-block;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.lens.second{border-color:var(--line)}
+.lens.second .tag{color:var(--muted)}
+.why{color:var(--muted);font-size:15px}
+.cta{background:var(--ink);color:#FFFFFF;border-radius:20px;padding:22px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.cta p{color:#C3CFDA;font-size:15px}
+.cta .num{color:#FFFFFF;font-weight:600;user-select:all}
+.fine{color:var(--muted);font-size:14px}
+.intro-list{display:grid;gap:8px;margin:18px 0 26px;padding:0;list-style:none}
+.intro-list li{display:flex;gap:10px;align-items:baseline}
+.intro-list li::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent);transform:translateY(-2px)}
+@media (prefers-reduced-motion: reduce){.bar span{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <a href="index.html" aria-label="iOptics – начало"><img src="images/logo.png" alt="iOptics"></a>
+    <a class="back" href="index.html">← Към сайта</a>
+  </div>
+
+  <!-- Начало -->
+  <section id="v-intro" class="card">
+    <p class="eyebrow">Безплатен тест · 2 минути</p>
+    <h1>Очила ли ви трябват, или нещо друго?</h1>
+    <p class="lead">Отговорете на 7 кратки въпроса. Ще ви кажем дали оплакванията ви звучат като нужда от очила или от очен лекар, и кой вид лещи най-вероятно ще ви подхождат.</p>
+    <ul class="intro-list">
+      <li>Разпознава симптоми, при които трябва да отидете при очен лекар</li>
+      <li>Препоръчва вид корекция: еднофокусна, прогресивна или офис-прогресивна</li>
+      <li>Отчита възрастта, работата на екран и начина ви на живот</li>
+    </ul>
+    <button class="btn primary" id="start" type="button">Започнете теста</button>
+  </section>
+
+  <!-- Въпрос -->
+  <section id="v-q" class="card" hidden>
+    <div class="progress"><span id="q-count">Въпрос 1 от 7</span><div class="bar" aria-hidden="true"><span id="q-bar" style="width:0%"></span></div></div>
+    <h2 id="q-title"></h2>
+    <p class="hint" id="q-hint"></p>
+    <div class="options" id="q-options" role="group"></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">Назад</button>
+      <button class="btn primary" id="next" type="button" disabled>Напред</button>
+    </div>
+  </section>
+
+  <!-- Предупреждение -->
+  <section id="v-alert" class="card" hidden>
+    <div class="notice alert">
+      <h3>Не отлагайте – посетете очен лекар</h3>
+      <p>Отбелязахте симптом, който може да е признак на състояние, изискващо преглед от офталмолог възможно най-скоро. Очилата няма да го решат.</p>
+      <ul id="alert-list"></ul>
+      <p style="margin-top:10px">При внезапна загуба на зрение, светкавици със „завеса“ пред окото или силна болка потърсете спешна очна помощ още днес.</p>
+    </div>
+    <div class="nav" style="margin-top:22px">
+      <button class="btn" id="alert-back" type="button">Назад</button>
+      <button class="btn primary" id="alert-go" type="button">Разбрах, продължете теста</button>
+    </div>
+  </section>
+
+  <!-- Резултат -->
+  <section id="v-result" hidden>
+    <div class="card stack">
+      <p class="eyebrow">Вашият резултат</p>
+      <h1 id="r-title" style="margin-bottom:0"></h1>
+      <div id="r-notices" class="stack"></div>
+      <div id="r-lenses" class="stack"></div>
+      <div class="why"><strong>Защо тази препоръка</strong><ul id="r-why"></ul></div>
+      <div class="cta">
+        <div>
+          <h3 style="margin:0 0 4px">Проверете със сигурност</h3>
+          <p>Пълен анализ на окото с Visionix VX120+ и съвет за лещи. Телефон: <span class="num">0883 330 599</span></p>
+        </div>
+        <a class="btn primary" href="https://calendar.app.google/NS3qrNB96xKo7z7Z8" target="_blank" rel="noopener">Запазете час</a>
+      </div>
+      <p class="fine">Тестът е ориентировъчен и не замества преглед. Точната корекция и вида лещи определяме след измерване в магазина.</p>
+      <div class="nav"><button class="btn" id="restart" type="button">Направете теста отново</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var Q = [
+    {id:'age', type:'single', title:'На колко години сте?', hint:'Възрастта е важна, защото след около 40 г. четенето отблизо постепенно се затруднява.',
+     opts:[['u18','Под 18 години'],['a18','18 – 39 години'],['a40','40 – 54 години'],['a55','55 и повече години']]},
+    {id:'flags', type:'multi', title:'Имате ли някое от тези оплаквания?', hint:'Отбележете всичко, което се отнася за вас.',
+     opts:[['sudden','Внезапно влошаване на зрението','за часове или няколко дни'],['flash','Светкавици, нови „мушици“ или сянка/завеса пред окото'],['wavy','Правите линии изглеждат криви или вълнообразни'],['double','Внезапно двойно виждане'],['pain','Болка в окото, силно зачервяване или цветни кръгове около светлините'],['none','Нищо от изброените']]},
+    {id:'sym', type:'multi', title:'Какво ви затруднява в последно време?', hint:'Отбележете всичко, което забелязвате.',
+     opts:[['far','Виждам размазано надалеч','табели, телевизор, лица отдалеч'],['near','Трудно чета отблизо','отдалечавам телефона или етикетите'],['screen','Очите ми се уморяват на екран','парене, главоболие в края на деня'],['night','Трудно шофирам вечер','заслепяват ме фаровете'],['fog','Виждам като през мъгла','цветовете изглеждат по-бледи'],['none','Нямам оплаквания']]},
+    {id:'cur', type:'single', title:'Носите ли очила или лещи в момента?', hint:'',
+     opts:[['no','Не нося'],['far','Да, очила за далече'],['near','Да, очила за четене'],['prog','Да, прогресивни очила'],['cl','Да, контактни лещи']]},
+    {id:'exam', type:'single', title:'Кога за последно сте проверявали зрението си?', hint:'',
+     opts:[['lt1','Преди по-малко от година'],['y2','Преди 1 – 2 години'],['gt2','Преди повече от 2 години'],['never','Никога']]},
+    {id:'scr', type:'single', title:'Колко часа на ден гледате екран?', hint:'Компютър, телефон и таблет общо.',
+     opts:[['lt2','До 2 часа'],['h5','2 – 5 часа'],['gt5','Над 5 часа']]},
+    {id:'day', type:'single', title:'Кое описва деня ви най-добре?', hint:'',
+     opts:[['drive','Много шофиране'],['office','Работа на бюро и компютър'],['active','Активен, навън, спорт'],['mixed','Смесено – от всичко по малко']]}
+  ];
+  var LABEL = {};
+  Q.forEach(function(q){ LABEL[q.id] = {}; q.opts.forEach(function(o){ LABEL[q.id][o[0]] = o[1]; }); });
+
+  var ans = {}, i = 0, alertShown = false;
+  var $ = function(id){ return document.getElementById(id); };
+  var views = ['v-intro','v-q','v-alert','v-result'];
+  function show(v){ views.forEach(function(x){ $(x).hidden = (x !== v); }); window.scrollTo(0,0); }
+
+  function render(){
+    var q = Q[i];
+    $('q-count').textContent = 'Въпрос ' + (i+1) + ' от ' + Q.length;
+    $('q-bar').style.width = Math.round(i / Q.length * 100) + '%';
+    $('q-title').textContent = q.title;
+    $('q-hint').textContent = q.hint || (q.type === 'multi' ? 'Може да изберете повече от един отговор.' : '');
+    $('q-hint').hidden = !$('q-hint').textContent;
+    var box = $('q-options'); box.innerHTML = '';
+    box.setAttribute('aria-label', q.title);
+    var cur = ans[q.id] || (q.type === 'multi' ? [] : null);
+    q.opts.forEach(function(o){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'opt ' + q.type; b.id = 'opt-' + q.id + '-' + o[0];
+      var on = q.type === 'multi' ? cur.indexOf(o[0]) > -1 : cur === o[0];
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.innerHTML = '<span class="mark" aria-hidden="true"></span><span></span>';
+      var t = b.lastChild; t.textContent = o[1];
+      if (o[2]) { var s = document.createElement('small'); s.textContent = o[2]; t.appendChild(s); }
+      b.addEventListener('click', function(){ pick(q, o[0]); });
+      box.appendChild(b);
+    });
+    $('prev').hidden = i === 0;
+    $('next').textContent = i === Q.length - 1 ? 'Вижте резултата' : 'Напред';
+    updateNext();
+  }
+  function updateNext(){
+    var v = ans[Q[i].id];
+    $('next').disabled = !(Q[i].type === 'multi' ? (v && v.length) : v);
+  }
+  function pick(q, val){
+    if (q.type === 'single') { ans[q.id] = val; render(); setTimeout(next, 180); return; }
+    var a = (ans[q.id] || []).slice();
+    if (val === 'none') a = a.indexOf('none') > -1 ? [] : ['none'];
+    else { a = a.filter(function(x){ return x !== 'none'; }); var k = a.indexOf(val); if (k > -1) a.splice(k,1); else a.push(val); }
+    ans[q.id] = a; render();
+  }
+  function has(id, val){ var v = ans[id]; return Array.isArray(v) ? v.indexOf(val) > -1 : v === val; }
+  function redFlags(){ return (ans.flags || []).filter(function(x){ return x !== 'none'; }); }
+
+  function next(){
+    var q = Q[i];
+    if (q.id === 'flags' && redFlags().length && !alertShown) {
+      var ul = $('alert-list'); ul.innerHTML = '';
+      redFlags().forEach(function(f){ var li = document.createElement('li'); li.textContent = LABEL.flags[f]; ul.appendChild(li); });
+      alertShown = true; show('v-alert'); return;
+    }
+    if (i < Q.length - 1) { i++; render(); show('v-q'); $('next').focus({preventScroll:true}); }
+    else result();
+  }
+
+  function result(){
+    var age = ans.age, older = age === 'a40' || age === 'a55';
+    var heavyScreen = has('scr','gt5') || has('day','office');
+    var nearNeed = has('sym','near') || has('cur','near') || has('cur','prog') || age === 'a55';
+    var farNeed = has('sym','far') || has('cur','far') || has('cur','prog');
+    var why = [], notices = [], lenses = [];
+
+    function notice(kind, title, text){ notices.push([kind,title,text]); }
+    function lens(tag, name, text){ lenses.push([tag,name,text]); }
+
+    if (redFlags().length) notice('alert','Първо: очен лекар','Някои от отбелязаните симптоми (' + redFlags().map(function(f){return LABEL.flags[f].toLowerCase();}).join('; ') + ') изискват преглед от офталмолог. Не ги отлагайте заради очилата.');
+    if (has('sym','fog') || (has('sym','night') && age === 'a55'))
+      notice('warn','Това може да не е само въпрос на очила','Мъгливото виждане, избледнелите цветове и заслепяването от фарове често не се оправят с нов диоптър. Апаратът Visionix VX120+ прави скрийнинг за катаракта и глаукома, а при нужда ще ви насочим към очен лекар.');
+    if (older && (has('exam','gt2') || has('exam','never')))
+      notice('warn','След 40 години проверявайте и вътреочното налягане','Повишеното вътреочно налягане е рисков фактор за глаукома и в началото не боли. Измерваме го безконтактно при всеки преглед.');
+
+    var symptomatic = has('sym','far') || has('sym','near') || has('sym','screen') || has('sym','night');
+    var title;
+
+    if (age === 'u18') {
+      lens('Препоръка','Еднофокусни лещи','При децата и младежите зрението се променя бързо. Една сила на лещата, подбрана според измерването, и проверка всяка година.');
+      why.push('При деца и младежи под 18 г. диоптърът често се сменя.');
+    } else if (!older) {
+      if (has('sym','far') || has('cur','far')) {
+        lens('Препоръка','Еднофокусни лещи за далече', heavyScreen ? 'Ясно виждане надалеч, със специално покритие и дизайн за работа на екран.' : 'Ясно виждане надалеч – шофиране, телевизор, табели.');
+        why.push('Отбелязахте затруднение или очила за далече.');
+      } else if (has('sym','screen') || has('sym','near')) {
+        lens('Препоръка','Еднофокусни лещи за екран','Лещи с лека подкрепа за близко разстояние, които намаляват умората на очите при работа с компютър и телефон.');
+        why.push('Очите ви се уморяват на екран или при четене.');
+      } else if (has('cur','cl') || has('cur','near')) {
+        lens('Препоръка','Проверка на сегашния диоптър','Нямате оплаквания, но е добре да проверите дали лещите ви все още отговарят на зрението.');
+      } else {
+        lens('Препоръка','Засега едва ли имате нужда от очила','Нямате оплаквания. Препоръчваме профилактична проверка на всеки 2 години.');
+      }
+      if (heavyScreen) why.push('Прекарвате много време пред екран.');
+    } else {
+      why.push('След 40 г. четенето отблизо постепенно се затруднява – това е нормално и се нарича пресбиопия.');
+      if (nearNeed && (farNeed || has('day','drive') || has('sym','night'))) {
+        lens('Основна препоръка','Прогресивни лещи','Една леща за всички разстояния – далече, компютър и четене, без видима граница. Подходящи за шофиране и за целия ден.');
+        if (farNeed) why.push('Имате нужда и от корекция за далече.');
+        if (has('day','drive')) why.push('Шофирате често, затова лещата трябва да покрива и далечното разстояние.');
+        if (has('sym','night')) why.push('Затруднява ви шофирането вечер – нужна е добра корекция и за далече.');
+        if (heavyScreen) {
+          lens('Втори чифт за работа','Офис-прогресивни лещи','За бюро и компютър: много по-широки зони за екран и документи от обикновения прогресив. Не са за шофиране.');
+          why.push('Работите дълго на екран – втори чифт за бюрото значително намалява напрежението.');
+        }
+      } else if (nearNeed) {
+        if (heavyScreen) {
+          lens('Основна препоръка','Офис-прогресивни лещи','Виждате ясно на документи, екран и до около 2–4 метра – удобни за целия работен ден. Не са за шофиране.');
+          why.push('Затруднява ви близкото разстояние, а голяма част от деня ви е на бюро и пред екран.');
+        } else {
+          lens('Основна препоръка','Еднофокусни лещи за четене','Ясно виждане отблизо – книги, телефон, етикети. Ако по-късно се появи и нужда за далече, следващата стъпка са прогресивните лещи.');
+          why.push('Затруднява ви само близкото разстояние.');
+        }
+      } else if (farNeed) {
+        lens('Основна препоръка','Еднофокусни лещи за далече','Ясно виждане надалеч. Около и след 45 г. обикновено идва и нужда за близо – тогава прогресивните лещи решават и двете.');
+        why.push('Отбелязахте затруднение или очила за далече.');
+      } else {
+        lens('Препоръка','Засега едва ли имате нужда от очила','Нямате оплаквания, но след 40 г. зрението за близо се променя. Препоръчваме проверка всяка година.');
+      }
+    }
+    if (has('cur','cl')) why.push('Носите контактни лещи – можем да ги комбинираме с очила или да подберем мултифокални контактни лещи.');
+    if (has('exam','gt2') || has('exam','never')) why.push('Последната ви проверка е отдавна или не сте правили такава.');
+
+    if (redFlags().length) title = 'Посетете очен лекар, а след това помислете за очила';
+    else if (has('sym','fog')) title = 'Препоръчваме изследване, преди да изберете очила';
+    else if (symptomatic) title = 'Оплакванията ви звучат като нужда от очила';
+    else if (has('exam','gt2') || has('exam','never')) title = 'Време е за профилактична проверка';
+    else title = 'Зрението ви изглежда наред';
+    if (!notices.length && symptomatic) notice('ok','Добрата новина','Описаните оплаквания обикновено се коригират напълно с правилно подбрани очила.');
+
+    $('r-title').textContent = title;
+    var nb = $('r-notices'); nb.innerHTML = '';
+    notices.forEach(function(n){ var d = document.createElement('div'); d.className = 'notice ' + n[0]; d.innerHTML = '<h3></h3><p></p>'; d.firstChild.textContent = n[1]; d.lastChild.textContent = n[2]; nb.appendChild(d); });
+    var lb = $('r-lenses'); lb.innerHTML = '';
+    lenses.forEach(function(l, k){ var d = document.createElement('div'); d.className = 'lens' + (k ? ' second' : ''); d.innerHTML = '<span class="tag"></span><h2></h2><p></p>'; d.children[0].textContent = l[0]; d.children[1].textContent = l[1]; d.children[2].textContent = l[2]; lb.appendChild(d); });
+    var wb = $('r-why'); wb.innerHTML = '';
+    if (!why.length) why.push('Според възрастта и отговорите ви.');
+    why.forEach(function(w){ var li = document.createElement('li'); li.textContent = w; wb.appendChild(li); });
+    $('q-bar').style.width = '100%';
+    show('v-result');
+  }
+
+  $('start').addEventListener('click', function(){ i = 0; render(); show('v-q'); });
+  $('next').addEventListener('click', next);
+  $('prev').addEventListener('click', function(){ if (i > 0) { i--; render(); } });
+  $('alert-go').addEventListener('click', function(){ i++; render(); show('v-q'); });
+  $('alert-back').addEventListener('click', function(){ alertShown = false; render(); show('v-q'); });
+  $('restart').addEventListener('click', function(){ ans = {}; i = 0; alertShown = false; show('v-intro'); });
+})();
+</script>
+
+</html>
