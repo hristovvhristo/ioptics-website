@@ -58,6 +58,7 @@ p{margin:0}
 .notice.alert{background:var(--alert-soft)} .notice.alert h3{color:var(--alert)}
 .notice.warn{background:var(--warn-soft)} .notice.warn h3{color:var(--warn)}
 .notice.ok{background:var(--ok-soft)} .notice.ok h3{color:var(--ok)}
+.notice.info{background:var(--accent-soft)} .notice.info h3{color:var(--accent)}
 .notice ul,.why ul{margin:8px 0 0;padding-left:20px}
 .lens{border:2px solid var(--accent);border-radius:20px;padding:20px 22px;background:var(--surface)}
 .lens .tag{display:inline-block;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
@@ -237,11 +238,11 @@ p{margin:0}
 
     if (redFlags().length) notice('alert','Първо: очен лекар','Някои от отбелязаните симптоми (' + redFlags().map(function(f){return LABEL.flags[f].toLowerCase();}).join('; ') + ') изискват преглед от офталмолог. Не ги отлагайте заради очилата.');
     if (has('sym','fog') || (has('sym','night') && age === 'a55'))
-      notice('warn','Това може да не е само въпрос на очила','Мъгливото виждане, избледнелите цветове и заслепяването от фарове често не се оправят с нов диоптър. Апаратът Visionix VX120+ прави скрийнинг за катаракта и глаукома, а при нужда ще ви насочим към очен лекар.');
+      notice('info','Най-често причината е в диоптъра','Замъгленото виждане обикновено се дължи на появил се или променен диоптър и се оправя с подходящи очила. Понякога причината е друга, затова при измерването с Visionix VX120+ правим и скрийнинг за катаракта и глаукома. Ако забележим нещо, ще ви насочим към очен лекар.');
     if (older && (has('exam','gt2') || has('exam','never')))
       notice('warn','След 40 години проверявайте и вътреочното налягане','Повишеното вътреочно налягане е рисков фактор за глаукома и в началото не боли. Измерваме го безконтактно при всеки преглед.');
 
-    var symptomatic = has('sym','far') || has('sym','near') || has('sym','screen') || has('sym','night');
+    var symptomatic = has('sym','far') || has('sym','near') || has('sym','screen') || has('sym','night') || has('sym','fog');
     var title;
 
     if (age === 'u18') {
@@ -290,7 +291,6 @@ p{margin:0}
     if (has('exam','gt2') || has('exam','never')) why.push('Последната ви проверка е отдавна или не сте правили такава.');
 
     if (redFlags().length) title = 'Посетете очен лекар, а след това помислете за очила';
-    else if (has('sym','fog')) title = 'Препоръчваме изследване, преди да изберете очила';
     else if (symptomatic) title = 'Оплакванията ви звучат като нужда от очила';
     else if (has('exam','gt2') || has('exam','never')) title = 'Време е за профилактична проверка';
     else title = 'Зрението ви изглежда наред';
