@@ -55,6 +55,12 @@ img{max-width:100%}
 @media (max-width:760px){.iris-stage{max-width:300px}}
 @media (prefers-reduced-motion:reduce){.iris-glow,.iris-breathe,.iris-spin,.iris-pupil{animation:none}}
 details summary{cursor:pointer;list-style:none}details summary::-webkit-details-marker{display:none}details[open] .chev{transform:rotate(180deg)}
+.dd{position:relative}
+.dd>button{font:inherit;font-weight:500;color:#10233A;background:none;border:0;padding:10px 0;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.dd-menu{display:none;position:absolute;top:100%;left:-16px;background:#FFFFFF;border-radius:16px;box-shadow:0 12px 32px rgba(16,35,58,.18);padding:8px 16px;min-width:250px;z-index:30;flex-direction:column}
+.dd-menu a{padding:10px 0!important;border-bottom:1px solid #EEF0F2}.dd-menu a:last-child{border-bottom:0}
+.dd:hover .dd-menu,.dd:focus-within .dd-menu,.dd.open .dd-menu{display:flex}
+@media (max-width:1180px){.site-nav{align-items:stretch!important}.dd>button{padding:14px 0;width:100%;justify-content:space-between;border-bottom:1px solid #EEF0F2}.dd-menu{position:static;box-shadow:none;min-width:0;padding:0 0 0 16px;border-radius:0}.dd:hover .dd-menu{display:none}.dd.open .dd-menu{display:flex}}
 </style>
 </head>
 <body>
@@ -64,13 +70,12 @@ details summary{cursor:pointer;list-style:none}details summary::-webkit-details-
 <a href="index.html" style="display: flex; align-items: center; text-decoration: none">
 <img src="images/logo.png" alt="iOptics" style="height: 52px; width: auto; display: block">
 </a>
-<nav id="site-nav" class="site-nav" aria-label="Основно меню" style="display: flex; flex-wrap: wrap; gap: 4px 18px; font-weight: 500; font-size: 16px">
-<a href="index.html#ekspertiza" style="color: #10233A; text-decoration: none; padding: 10px 0">Експертиза</a>
-<a href="progresivni-ochila.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Прогресивни</a>
+<nav id="site-nav" class="site-nav" aria-label="Основно меню" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; font-weight: 500; font-size: 16px">
+<div class="dd"><button type="button" aria-expanded="false" onclick="var d=this.parentNode;var o=d.classList.toggle('open');this.setAttribute('aria-expanded',o)" style="color:#2F45D8">Лещи <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="dd-menu"><a href="progresivni-ochila.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Прогресивни очила</a><a href="pokritiya.html" style="color: #2F45D8; text-decoration: none; padding: 10px 0" aria-current="page">Покрития</a><a href="fotohromni.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Фотохромни лещи</a><a href="kasogledstvo-detsa.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Късогледство при деца</a></div></div>
 <a href="tehnologia.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Технология</a>
-<a href="index.html#proces" style="color: #10233A; text-decoration: none; padding: 10px 0">Как работим</a>
-<a href="index.html#uslugi" style="color: #10233A; text-decoration: none; padding: 10px 0">Услуги</a>
+<a href="pregled-oftalmolog.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Офталмолог</a>
 <a href="test.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Тест за зрението</a>
+<a href="chesti-vaprosi.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Въпроси</a>
 <a href="index.html#kontakt" style="color: #10233A; text-decoration: none; padding: 10px 0">Контакти</a>
 </nav>
 <div style="display: flex; align-items: center; gap: 10px"><a class="hdr-cta" href="https://calendar.app.google/NS3qrNB96xKo7z7Z8" target="_blank" rel="noopener" style="background: #2F45D8; color: #FFFFFF; text-decoration: none; font-weight: 600; padding: 12px 20px; border-radius: 999px">Запазете час</a>
