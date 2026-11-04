@@ -129,5 +129,6 @@
 
   window.IrisIntro = { play: play };
   var seen = false; try { seen = ONCE && sessionStorage.getItem(KEY); } catch (e) {}
+  try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) seen = true; } catch (e) {}
   if (!seen) document.body ? play() : document.addEventListener('DOMContentLoaded', play);
 })();
