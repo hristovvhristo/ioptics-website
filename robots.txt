@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /razpiski/
 
 Sitemap: https://ioptics-bg.com/sitemap.xml
