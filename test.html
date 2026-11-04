@@ -349,14 +349,21 @@ function results(){
   (S.calibrated?'':'<p class="note">Екранът не е калибриран, затова стойностите са приблизителни.</p>')+
   '<div class="notice info"><h3>Какво означава</h3><ul class="dots" style="margin:8px 0 0;color:inherit">'+recs.map(function(r){return '<li>'+r+'</li>'}).join('')+'</ul></div>'+
   '<div class="cta"><div><h3 style="margin:0 0 4px">Проверете със сигурност</h3><p>Анализ на зрението с Visionix VX120+ – рефракция, налягане, скрийнинг за глаукома и катаракта. Тел. 0883 330 599</p></div><a class="btn primary" href="'+CAL+'" target="_blank" rel="noopener">Запазете час</a></div>'+
-  '<div class="row"><button class="btn" id="viber" type="button">Изпратете резултата по Viber</button><button class="btn" id="copy" type="button">Копирайте резултата</button></div><p class="note" id="cmsg" role="status"></p>'+
+  '<div class="row"><button class="btn" id="viber" type="button">Изпратете резултата по Viber</button><button class="btn" id="copy" type="button">Копирайте резултата</button></div><p class="note" id="cmsg" role="status"></p><p class="note">Не се копира? <a href="#" id="vfwd">Изпратете текста директно през Viber</a> и изберете iOptics от списъка.</p><pre id="rtext" hidden style="white-space:pre-wrap;background:var(--bg);border-radius:12px;padding:12px;font:inherit;font-size:14px;user-select:all"></pre>'+
   (S.mode==='full'?'<div class="notice warn"><h3>Последна стъпка</h3><p>Отговорете на 7 кратки въпроса за начина ви на живот и ще ви препоръчаме вид лещи.</p><a class="btn primary" href="vaprosnik.html" style="margin-top:12px">Към въпросника</a></div>':'<div class="notice warn"><h3>Искате по-пълна картина?</h3><p>Пълният тест проверява и контраст, астигматизъм, цветове, четене и решетка на Амслер.</p><button class="btn primary" id="full" type="button" style="margin-top:12px">Направете пълния тест</button></div>')+
   '<div class="row"><button class="btn" id="again" type="button">Започнете отначало</button></div></div>');
-  function copy(cb){var done=function(){document.getElementById('cmsg').textContent='Резултатът е копиран.';cb&&cb()};
-    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(stext).then(done,function(){fallback();done()});else{fallback();done()}}
-  function fallback(){var t=document.createElement('textarea');t.value=stext;document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}t.remove()}
-  on('copy',function(){copy()});
-  on('viber',function(){copy(function(){document.getElementById('cmsg').textContent='Резултатът е копиран – поставете го в чата с iOptics и натиснете „Изпрати“.';});window.location.href='viber://chat?number='+encodeURIComponent(PHONE)});
+  function syncCopy(){var t=document.createElement('textarea');t.value=stext;t.setAttribute('readonly','');t.style.position='absolute';t.style.left='-9999px';t.style.fontSize='16px';document.body.appendChild(t);
+    t.focus();t.select();t.setSelectionRange(0,stext.length);var ok=false;try{ok=document.execCommand('copy')}catch(e){}t.remove();return ok}
+  function copyAll(){var ok=syncCopy();var p=(navigator.clipboard&&navigator.clipboard.writeText)?navigator.clipboard.writeText(stext).then(function(){return true},function(){return ok}):Promise.resolve(ok);return p}
+  var msg=function(t){document.getElementById('cmsg').innerHTML=t};
+  on('copy',function(){copyAll().then(function(ok){msg(ok?'Резултатът е копиран.':'Не успяхме да копираме автоматично – маркирайте текста по-долу и го копирайте.');if(!ok)showText()})});
+  on('viber',function(){copyAll().then(function(ok){
+    msg(ok?'Резултатът е копиран. В чата с iOptics задръжте пръст в полето за писане → „Постави“ → „Изпрати“.':'Копирайте текста по-долу и го поставете в чата.');
+    if(!ok)showText();
+    setTimeout(function(){window.location.href='viber://chat?number='+encodeURIComponent(PHONE)},350);
+  })});
+  on('vfwd',function(e){e.preventDefault();window.location.href='viber://forward?text='+encodeURIComponent(stext)});
+  function showText(){var b=document.getElementById('rtext');b.hidden=false;b.textContent=stext}
   on('again',start);
   on('full',function(){S.mode='full';S.r={};setup()});
 }
