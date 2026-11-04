@@ -24,7 +24,7 @@ html{scroll-behavior:smooth}
 *{box-sizing:border-box}
 img{max-width:100%}
 .menu-btn{display:none;background:none;border:1px solid #C9D0D6;border-radius:12px;width:48px;height:48px;align-items:center;justify-content:center;cursor:pointer;color:#10233A}
-@media (max-width:760px){
+@media (max-width:1180px){
  .site-header{flex-wrap:nowrap!important}
  .menu-btn{display:flex}
  .site-nav{display:none!important;position:absolute;left:16px;right:16px;top:84px;background:#FFFFFF;border-radius:16px;box-shadow:0 12px 32px rgba(16,35,58,.18);padding:8px 20px;flex-direction:column;gap:0!important;z-index:20}
@@ -35,7 +35,7 @@ img{max-width:100%}
  .site-header img{height:40px!important}
 }
 
-.hero-band{background:radial-gradient(ellipse at 75% 50%,#1C3A5E 0%,#10233A 60%)}
+.hero-band{overflow:hidden;background:radial-gradient(ellipse at 75% 50%,#1C3A5E 0%,#10233A 60%)}
 .iris-stage{position:relative;width:100%;max-width:440px;aspect-ratio:1/1}
 .iris-glow{position:absolute;inset:-14%;border-radius:50%;background:radial-gradient(circle,rgba(90,160,235,.42) 0%,rgba(90,160,235,0) 62%);animation:iris-glow 7s ease-in-out infinite}
 .iris-breathe{position:absolute;inset:0;animation:iris-breathe 7s ease-in-out infinite}
@@ -57,8 +57,9 @@ img{max-width:100%}
 <a href="#top" style="display: flex; align-items: center; text-decoration: none">
 <img src="images/logo.png" alt="iOptics" style="height: 52px; width: auto; display: block">
 </a>
-<nav id="site-nav" class="site-nav" aria-label="Основно меню" style="display: flex; flex-wrap: wrap; gap: 4px 24px; font-weight: 500">
+<nav id="site-nav" class="site-nav" aria-label="Основно меню" style="display: flex; flex-wrap: wrap; gap: 4px 18px; font-weight: 500; font-size: 16px">
 <a href="#ekspertiza" style="color: #10233A; text-decoration: none; padding: 10px 0">Експертиза</a>
+<a href="progresivni-ochila.html" style="color: #10233A; text-decoration: none; padding: 10px 0">Прогресивни</a>
 <a href="#tehnologia" style="color: #10233A; text-decoration: none; padding: 10px 0">Технология</a>
 <a href="#proces" style="color: #10233A; text-decoration: none; padding: 10px 0">Как работим</a>
 <a href="#uslugi" style="color: #10233A; text-decoration: none; padding: 10px 0">Услуги</a>
