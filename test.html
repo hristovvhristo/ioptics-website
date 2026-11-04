@@ -264,17 +264,17 @@ function plate(canvas,num,fig,bgc){
   var dpr=window.devicePixelRatio||1,W=300;canvas.width=W*dpr;canvas.height=W*dpr;canvas.style.width='min(300px,100%)';
   var c=canvas.getContext('2d');c.scale(dpr,dpr);
   var m=document.createElement('canvas');m.width=W;m.height=W;var mc=m.getContext('2d');
-  mc.fillStyle='#000';mc.font='700 '+(num.length>1?150:180)+'px Arial,sans-serif';mc.textAlign='center';mc.textBaseline='middle';mc.lineWidth=16;mc.lineJoin='round';mc.strokeStyle='#000';mc.strokeText(num,W/2,W/2+8);mc.fillText(num,W/2,W/2+8);
+  mc.fillStyle='#000';mc.font='900 '+(num.length>1?175:215)+'px Arial Black,Arial,sans-serif';mc.textAlign='center';mc.textBaseline='middle';mc.lineWidth=num.length>1?6:9;mc.lineJoin='round';mc.strokeStyle='#000';mc.strokeText(num,W/2,W/2+8);mc.fillText(num,W/2,W/2+8);
   var md=mc.getImageData(0,0,W,W).data;
   var dots=[],cell=16,grid={};
   function ok(x,y,r){var gx=Math.floor(x/cell),gy=Math.floor(y/cell);for(var i=gx-1;i<=gx+1;i++)for(var j=gy-1;j<=gy+1;j++){var l=grid[i+','+j];if(l)for(var k=0;k<l.length;k++){var d=l[k];var dx=d[0]-x,dy=d[1]-y;if(dx*dx+dy*dy<(d[2]+r+1)*(d[2]+r+1))return false}}return true}
-  var radii=[7.5,6,5,4,3.2,2.5];
-  radii.forEach(function(R){for(var t=0;t<2600;t++){var a=Math.random()*Math.PI*2,rr=Math.sqrt(Math.random())*(142-R);var x=W/2+Math.cos(a)*rr,y=W/2+Math.sin(a)*rr;var r=R*(0.85+Math.random()*0.3);if(ok(x,y,r)){var d=[x,y,r];dots.push(d);var key=Math.floor(x/cell)+','+Math.floor(y/cell);(grid[key]=grid[key]||[]).push(d)}}});
+  var radii=[5.2,4.4,3.7,3.1,2.6,2.1,1.7];
+  radii.forEach(function(R){for(var t=0;t<4200;t++){var a=Math.random()*Math.PI*2,rr=Math.sqrt(Math.random())*(142-R);var x=W/2+Math.cos(a)*rr,y=W/2+Math.sin(a)*rr;var r=R*(0.85+Math.random()*0.3);if(ok(x,y,r)){var d=[x,y,r];dots.push(d);var key=Math.floor(x/cell)+','+Math.floor(y/cell);(grid[key]=grid[key]||[]).push(d)}}});
   c.fillStyle='#FFFFFF';c.fillRect(0,0,W,W);
   dots.forEach(function(d){var inF=md[(Math.round(d[1])*W+Math.round(d[0]))*4+3]>100;var pal=inF?fig:bgc;c.fillStyle=pal[Math.floor(Math.random()*pal.length)];c.beginPath();c.arc(d[0],d[1],d[2],0,Math.PI*2);c.fill()});
 }
 function col(){
-  var pool=shuffle(['12','29','74','45','97','15','26','83','6','5','3','8']);
+  var pool=shuffle(['12','74','45','97','5','3','7','2','4','42']);
   var plates=[{n:pool[0],ctrl:true},{n:pool[1]},{n:pool[2]},{n:pool[3]}],idx=0,res={ctrl:false,rg:0};
   h(prog()+'<h2>Цветно зрение</h2>'+eyeBox('B')+'<p class="hint">Ще видите 4 кръга от цветни точки. Посочете числото, което виждате в кръга. Ако не виждате число, изберете „Не виждам“. Можете да гледате отблизо.</p><button class="btn primary" id="go" type="button">Започни</button>');
   on('go',show);
