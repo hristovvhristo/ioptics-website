@@ -127,7 +127,11 @@
     if (st.idx < mx) st.idx = mx;
     if (st.idx > LOGMAR.length - 1) st.idx = LOGMAR.length - 1;
   }
-  function strokeWarn(idx) { return letterPx(idx) / 5 < 1.5 ? ' · ⚠ чертата е под 1,5 px – твърде малко за този екран' : ''; }
+  // Дебелина на чертата във физически пиксели на екрана (на Android TV 1 CSS px често е 2 физически).
+  function strokeWarn(idx) {
+    var phys = letterPx(idx) / 5 * (window.devicePixelRatio || 1);
+    return phys < 1.5 ? ' · ⚠ чертата е ' + phys.toFixed(1).replace('.', ',') + ' пиксела – твърде малко за този екран' : '';
+  }
 
   function acuityScreen(set) {
     return {
