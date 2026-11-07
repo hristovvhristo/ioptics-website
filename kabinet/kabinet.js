@@ -384,8 +384,8 @@
     TILES.forEach(function (t, i) {
       h += '<button class="tile" data-nav data-open="' + t[0] + '"><span class="tn">' + (i < 9 ? (i + 1) : '') + '</span><b>' + esc(t[1]) + '</b><small>' + esc(t[2]) + '</small></button>';
     });
-    h += '</div><div class="hrow"><button class="btn" data-nav data-go="settings">Настройки</button><button class="btn" data-nav data-go="calib">Калибриране</button><button class="btn" data-nav data-go="fs">Цял екран</button><button class="btn ghost" data-nav data-go="logout">Изход</button></div>' +
-      '<p class="khint">Стрелки и OK на дистанционното · цифри 1–9 отварят тест директно · Назад връща тук.</p>';
+    h += '</div><div class="hrow"><button class="btn" data-nav data-go="settings">Настройки</button><button class="btn" data-nav data-go="calib">Калибриране</button>' + (window.KabinetAndroid ? '' : '<button class="btn" data-nav data-go="fs">Цял екран</button>') + '<button class="btn ghost" data-nav data-go="logout">Изход</button></div>' +
+      '<p class="khint">Стрелки и OK на дистанционното · цифри 1–9 отварят тест директно · Назад връща тук' + (window.KabinetAndroid ? ', два пъти Назад – изход.' : '.') + '</p>';
     home.innerHTML = h;
   }
   /* ---------- Настройки ---------- */
