@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Кабинет | iOptics</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Дигитална таблица за изследване на зрението за оптометристи – вход след регистрация.">
+<link rel="icon" href="/images/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600&amp;family=Unbounded:wght@500;700&amp;display=swap">
+<style>
+:root{
+  --bg:#F5F6F3; --surface:#FFFFFF; --ink:#10233A; --muted:#4A5E6E; --line:#D9DEE3;
+  --accent:#2F45D8; --accent-soft:#E3E7FD; --ok:#2F7A12; --warn:#9A5400; --alert:#B3261E; --alert-soft:#FCE4E1;
+  --display:'Unbounded','Arial Black',sans-serif; --body:'Commissioner',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:clamp(16px,1.15vw,26px);line-height:1.5}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+.eyebrow{margin:0 0 6px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;font-size:.78em}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,2.6vw,56px);line-height:1.12;letter-spacing:-1px;margin:0}
+.lead{color:var(--muted);max-width:62ch;margin:0 0 1em}
+.btn{font:inherit;font-weight:600;border-radius:999px;padding:.7em 1.4em;cursor:pointer;border:2px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:2.8em}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.ghost{background:transparent}
+button:focus-visible,.btn:focus,.tile:focus,.srow:focus{outline:4px solid var(--accent);outline-offset:3px}
+
+/* ---- Вход ---- */
+.auth{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left))}
+.abox{width:min(100%,460px);background:var(--surface);border-radius:24px;padding:clamp(22px,4vw,36px)}
+.abox img{height:40px;display:block;margin-bottom:18px}
+.abox h1{font-size:clamp(22px,4vw,30px);margin-bottom:8px}
+.abox p{margin:0 0 16px;color:var(--muted);font-size:16px}
+.tabs{display:flex;gap:6px;background:var(--bg);border-radius:999px;padding:4px;margin:0 0 18px}
+.tabs button{flex:1;font:inherit;font-weight:600;font-size:15px;border:0;border-radius:999px;padding:10px;background:transparent;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+label{display:block;font-weight:600;font-size:15px;margin:0 0 12px}
+label small{font-weight:400;color:var(--muted)}
+input[type=text],input[type=email],input[type=password]{display:block;width:100%;margin-top:6px;font:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input:focus{outline:3px solid var(--accent-soft);border-color:var(--accent)}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;color:var(--muted)}
+.check input{margin-top:3px;width:18px;height:18px;flex:none}
+.abox .btn{width:100%;font-size:16px;margin-top:6px}
+.msg{border-radius:12px;padding:10px 14px;font-size:15px;margin:0 0 14px}
+.msg.err{background:var(--alert-soft);color:var(--alert)}
+.msg.info{background:var(--accent-soft);color:var(--ink)}
+.linkbtn{font:inherit;font-size:15px;background:none;border:0;color:var(--accent);cursor:pointer;padding:8px 0;text-decoration:underline}
+.back{display:inline-block;margin-top:18px;font-size:15px;color:var(--muted)}
+
+/* ---- Приложение ---- */
+.view{padding:clamp(20px,3vw,64px) max(16px,4vw);max-width:2000px;margin:0 auto}
+.khead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:1.4em}
+.kstat{display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--muted);font-size:.85em}
+.kstat .ok{color:var(--ok);font-weight:600}.kstat .warn{color:var(--warn);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,13em),1fr));gap:.9em}
+.tile{position:relative;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid transparent;border-radius:20px;padding:1.1em 1.2em;cursor:pointer;min-height:6.2em;display:flex;flex-direction:column;justify-content:flex-end;gap:.2em}
+.tile:hover{border-color:var(--line)}
+.tile:focus{background:var(--accent-soft);border-color:var(--accent)}
+.tile b{font-family:var(--display);font-weight:500;font-size:1.05em;letter-spacing:-.3px;overflow-wrap:anywhere;hyphens:auto}
+.tile small{color:var(--muted);font-size:.8em}
+.tn{position:absolute;top:.6em;right:.9em;font-family:var(--display);color:var(--accent);font-size:.9em}
+.hrow{display:flex;gap:.7em;flex-wrap:wrap;margin-top:1.4em}
+.khint{color:var(--muted);font-size:.85em;margin:1em 0 0}
+.srows{display:flex;flex-direction:column;gap:.6em;max-width:60em}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:1em;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:2px solid transparent;border-radius:16px;padding:.9em 1.2em;cursor:pointer}
+.srow:focus{background:var(--accent-soft);border-color:var(--accent)}
+.srow small{display:block;color:var(--muted);font-size:.8em;font-weight:400}
+.srow em{font-style:normal;font-weight:600;color:var(--accent);white-space:nowrap}
+.cardbox{display:grid;place-items:center;min-height:40vh;background:var(--surface);border-radius:20px;padding:20px;overflow:hidden}
+.card{border:3px solid var(--accent);background:rgba(47,69,216,.12);border-radius:3.2%/5%}
+
+/* ---- Тест на цял екран ---- */
+#k-test{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:none;z-index:5}
+#k-test.cursor{cursor:default}
+#k-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#k-stage svg{display:block;overflow:hidden;flex:none}
+.line{display:flex;align-items:center;justify-content:center}
+.chart{display:flex;flex-direction:column;align-items:center}
+.crow{position:relative}
+.rlab{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:24px;white-space:nowrap;font:600 14px/1 var(--body);color:#99a3ad}
+.split{display:flex;width:100%;height:100%}
+.half{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.bands{display:flex;flex-direction:column;gap:0}
+#k-info{position:fixed;left:16px;bottom:10px;right:16px;font-size:14px;line-height:1.35;pointer-events:none;z-index:6}
+#k-info span{opacity:.8}
+#k-ctrls{position:fixed;right:16px;bottom:56px;display:flex;gap:8px;opacity:0;transition:opacity .2s;z-index:7;pointer-events:none}
+#k-ctrls.on{opacity:1;pointer-events:auto}
+#k-ctrls button{font:600 20px/1 var(--body);width:52px;height:52px;border-radius:50%;border:1px solid #ccd;background:rgba(255,255,255,.92);color:#10233A;cursor:pointer}
+body.testing{overflow:hidden}
+</style>
+</head>
+<body>
+
+<!-- ======= Вход / регистрация ======= -->
+<main class="auth" id="auth" hidden>
+  <div class="abox">
+    <a href="/"><img src="/images/logo.png" alt="iOptics"></a>
+    <div id="a-setup" hidden>
+      <h1>Кабинетът още не е настроен</h1>
+      <p>Попълнете данните на Firebase проекта във файла <code>kabinet/firebase-config.js</code>. Инструкции има в <code>kabinet/README.md</code>.</p>
+      <button class="btn" id="a-demo" hidden>Демо без вход (само локално)</button>
+    </div>
+    <div id="a-forms" hidden>
+      <h1>Кабинет за специалисти</h1>
+      <p>Дигитална таблица за изследване на зрението на телевизор или монитор.</p>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="login">Вход</button>
+        <button role="tab" aria-selected="false" data-tab="register">Регистрация</button>
+      </div>
+      <div id="a-msg" class="msg" hidden></div>
+      <form id="f-login">
+        <label>Имейл<input type="email" name="email" autocomplete="email" required></label>
+        <label>Парола<input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit">Вход</button>
+        <button class="linkbtn" type="button" id="a-forgot">Забравена парола</button>
+      </form>
+      <form id="f-register" hidden>
+        <label>Име и фамилия<input type="text" name="name" autocomplete="name" required></label>
+        <label>Оптика / практика <small>(по желание)</small><input type="text" name="practice" autocomplete="organization"></label>
+        <label>Имейл<input type="email" name="email" autocomplete="email" required></label>
+        <label>Парола <small>(поне 8 знака)</small><input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="check"><input type="checkbox" name="agree" required><span>Аз съм оптометрист или офталмолог. Разбирам, че таблицата е помощно средство и точността ѝ зависи от калибрирането и разстоянието.</span></label>
+        <button class="btn primary" type="submit">Създай акаунт</button>
+      </form>
+    </div>
+    <div id="a-verify" hidden>
+      <h1>Потвърдете имейла си</h1>
+      <p>Изпратихме линк на <b id="a-vmail"></b>. Отворете го и натиснете „Потвърдих“. Проверете и папката за спам.</p>
+      <div id="a-vmsg" class="msg" hidden></div>
+      <button class="btn primary" id="a-verified">Потвърдих</button>
+      <button class="btn" id="a-resend">Изпрати отново</button>
+      <button class="linkbtn" id="a-out">Изход</button>
+    </div>
+    <a class="back" href="/">← Към сайта</a>
+  </div>
+</main>
+
+<!-- ======= Приложение ======= -->
+<div id="app" hidden>
+  <section class="view" id="k-home"></section>
+  <section class="view" id="k-settings" hidden></section>
+  <section class="view" id="k-calib" hidden></section>
+  <section id="k-test" hidden>
+    <div id="k-stage"></div>
+    <div id="k-info"></div>
+    <div id="k-ctrls" aria-label="Управление">
+      <button data-ctl="up" title="По-голямо">▲</button><button data-ctl="down" title="По-малко">▼</button>
+      <button data-ctl="left" title="Назад по режим">◀</button><button data-ctl="right" title="Напред по режим">▶</button>
+      <button data-ctl="ok" title="Нови знаци">OK</button><button data-ctl="back" title="Меню">✕</button>
+    </div>
+  </section>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="kabinet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = window.KABINET_FIREBASE || {};
+  var local = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
+  $('auth').hidden = false;
+
+  if (!cfg.apiKey || typeof firebase === 'undefined') {
+    $('a-setup').hidden = false;
+    if (local) { $('a-demo').hidden = false; $('a-demo').onclick = function () { $('auth').hidden = true; Kabinet.start('Демо'); }; }
+    return;
+  }
+
+  firebase.initializeApp(cfg);
+  var auth = firebase.auth(), db = firebase.firestore();
+  auth.languageCode = 'bg';
+  var ERR = {
+    'auth/invalid-email': 'Невалиден имейл адрес.',
+    'auth/user-not-found': 'Грешен имейл или парола.',
+    'auth/wrong-password': 'Грешен имейл или парола.',
+    'auth/invalid-credential': 'Грешен имейл или парола.',
+    'auth/invalid-login-credentials': 'Грешен имейл или парола.',
+    'auth/email-already-in-use': 'Вече има акаунт с този имейл. Влезте или възстановете паролата.',
+    'auth/weak-password': 'Паролата е твърде слаба – поне 8 знака.',
+    'auth/too-many-requests': 'Твърде много опити. Опитайте след малко.',
+    'auth/network-request-failed': 'Няма връзка с интернет.',
+    'auth/missing-email': 'Въведете имейл.'
+  };
+  function msg(el, text, kind) { el.textContent = text; el.className = 'msg ' + (kind || 'err'); el.hidden = !text; }
+  function fail(e) { msg($('a-msg'), ERR[e && e.code] || 'Нещо се обърка. Опитайте отново.'); }
+
+  function tab(t) {
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+    $('f-login').hidden = t !== 'login'; $('f-register').hidden = t !== 'register'; msg($('a-msg'), '');
+  }
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { tab(b.dataset.tab); }; });
+
+  $('f-login').onsubmit = function (e) {
+    e.preventDefault(); var f = e.target;
+    auth.signInWithEmailAndPassword(f.email.value.trim(), f.password.value).catch(fail);
+  };
+  $('a-forgot').onclick = function () {
+    var em = $('f-login').email.value.trim();
+    if (!em) { msg($('a-msg'), 'Въведете имейла си и натиснете отново „Забравена парола“.', 'info'); return; }
+    auth.sendPasswordResetEmail(em).then(function () { msg($('a-msg'), 'Ако има акаунт с ' + em + ', изпратихме линк за нова парола.', 'info'); }).catch(fail);
+  };
+  var pendingProfile = null;
+  $('f-register').onsubmit = function (e) {
+    e.preventDefault(); var f = e.target;
+    pendingProfile = { name: f.name.value.trim(), practice: f.practice.value.trim() };
+    auth.createUserWithEmailAndPassword(f.email.value.trim(), f.password.value).then(function (c) {
+      return c.user.updateProfile({ displayName: pendingProfile.name }).then(function () {
+        return db.collection('users').doc(c.user.uid).set({
+          name: pendingProfile.name, practice: pendingProfile.practice, email: c.user.email,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }).then(function () { return c.user.sendEmailVerification(); }).then(function () { showVerify(c.user); });
+    }).catch(fail);
+  };
+
+  function showVerify(u) {
+    $('a-forms').hidden = true; $('a-verify').hidden = false; $('a-vmail').textContent = u.email; msg($('a-vmsg'), '');
+  }
+  $('a-verified').onclick = function () {
+    var u = auth.currentUser; if (!u) return;
+    u.reload().then(function () {
+      if (auth.currentUser.emailVerified) { auth.currentUser.getIdToken(true).then(function () { enter(auth.currentUser); }); }
+      else msg($('a-vmsg'), 'Имейлът още не е потвърден. Отворете линка от писмото.');
+    });
+  };
+  $('a-resend').onclick = function () {
+    var u = auth.currentUser; if (!u) return;
+    u.sendEmailVerification().then(function () { msg($('a-vmsg'), 'Изпратихме нов линк.', 'info'); }).catch(function (e) { msg($('a-vmsg'), ERR[e.code] || 'Не успяхме да изпратим писмото.'); });
+  };
+  $('a-out').onclick = function () { auth.signOut(); };
+  window.KabinetLogout = function () { auth.signOut(); };
+
+  function enter(u) {
+    var ref = db.collection('users').doc(u.uid);
+    ref.get().then(function (snap) { return snap.exists ? snap.data() : null; }).catch(function () { return null; }).then(function (data) {
+      $('auth').hidden = true;
+      Kabinet.start(u.displayName || u.email, {
+        data: data,
+        save: function (patch) { patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); ref.set(patch, { merge: true }).catch(function () {}); }
+      });
+    });
+  }
+
+  auth.onAuthStateChanged(function (u) {
+    if (!u) {
+      Kabinet.stop(); $('auth').hidden = false; $('a-verify').hidden = true; $('a-forms').hidden = false; tab('login');
+      return;
+    }
+    if (!u.emailVerified) { $('auth').hidden = false; showVerify(u); return; }
+    enter(u);
+  });
+})();
+</script>
+</body>
+</html>

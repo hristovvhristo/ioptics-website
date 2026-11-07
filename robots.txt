@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /kabinet/
 
 Sitemap: https://ioptics-bg.com/sitemap.xml
