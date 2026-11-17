@@ -38,7 +38,7 @@
     var flash = el('div', 'position:absolute;inset:0;pointer-events:none;will-change:opacity;opacity:0;background:radial-gradient(circle,#fff8ec 0,rgba(255,248,236,.4) 40%,rgba(255,248,236,0) 75%)', root);
     var paper = el('div', 'position:absolute;inset:0;background:' + PAPER + ';opacity:0;will-change:opacity;display:flex;align-items:center;justify-content:center', root);
     var logo = el('img', 'width:min(56vw,420px);height:auto;display:block;opacity:0;will-change:transform,opacity', paper);
-    img.alt = ''; logo.alt = 'iOptics';
+    img.alt = ''; logo.alt = 'i.Optics';
     img.decoding = 'async'; img.src = IMG; logo.src = LOGO;
 
     var S = 1;
