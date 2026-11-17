@@ -9,7 +9,8 @@
   var KEY = 'irisIntroSeen', NAVY = '#10233A', PAPER = '#F5F6F3';
   var IMG_W = 1600, IMG_H = 1131, IC = { x: 800, y: 566 }, IRIS_R = 430, PB = 300, PUPIL = 150;
   // timeline (s)
-  var L = 1.3, D = 2.6, V = 3.8, X = 5.0, LOGO_IN = 5.0, END = 6.8, FADE = 0.6;
+  var L = 1.3, D = 2.6, V = 3.8, X = 5.0, LOGO_IN = 5.0, END = 6.8, FADE = 0.4;
+  var SPEED = 2.8; // plays the whole timeline faster: about 2.4 s + fade instead of 6.8 s
   var E = {
     enter: function (p) { return 1 - Math.pow(1 - p, 3); },
     pop: function (p) { var c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
@@ -60,7 +61,7 @@
     var snd = sound();
     function frame(now) {
       if (start === null) { start = now; snd.schedule(); }
-      var t = (now - start) / 1000;
+      var t = (now - start) / 1000 * SPEED;
       var bright = keys(t, [[0, 0], [L - 0.2, 0.25], [L + 0.1, 0.25], [L + 0.7, 1]]);
       var p = Math.min(1, t / X), f = 0.14 * p + 0.86 * Math.pow(p, 5); // one continuous push: steady drift that keeps accelerating, never stops
       var c = 0.97 * Math.pow(9 / 0.97, f);
@@ -117,7 +118,7 @@
     }
     return {
       schedule: function () {
-        var t0 = ctx.currentTime + 0.02, at = t0 + LOGO_IN + 0.1;
+        var t0 = ctx.currentTime + 0.02, at = t0 + (LOGO_IN + 0.1) / SPEED;
         tone(1318.5, at, 1.1, 0.14);         // E6 — single clean bell
         tone(1318.5 * 2, at, 0.25, 0.025);   // faint shimmer
       },
