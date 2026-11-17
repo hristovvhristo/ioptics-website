@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Онлайн тест за зрението – безплатен | iOptics Самоков</title>
-<meta name="description" content="Безплатен онлайн тест за зрението от iOptics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
+<title>Онлайн тест за зрението – безплатен | i.Optics Самоков</title>
+<meta name="description" content="Безплатен онлайн тест за зрението от i.Optics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
 <link rel="canonical" href="https://ioptics-bg.com/test">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="iOptics">
+<meta property="og:site_name" content="i.Optics">
 <meta property="og:locale" content="bg_BG">
 <meta property="og:url" content="https://ioptics-bg.com/test">
-<meta property="og:title" content="Онлайн тест за зрението – безплатен | iOptics Самоков">
-<meta property="og:description" content="Безплатен онлайн тест за зрението от iOptics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
+<meta property="og:title" content="Онлайн тест за зрението – безплатен | i.Optics Самоков">
+<meta property="og:description" content="Безплатен онлайн тест за зрението от i.Optics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
 <meta property="og:image" content="https://ioptics-bg.com/images/iris_banner.jpg">
 <meta property="og:image:width" content="2400">
 <meta property="og:image:height" content="1200">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Онлайн тест за зрението – безплатен | iOptics Самоков">
-<meta name="twitter:description" content="Безплатен онлайн тест за зрението от iOptics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
+<meta name="twitter:title" content="Онлайн тест за зрението – безплатен | i.Optics Самоков">
+<meta name="twitter:description" content="Безплатен онлайн тест за зрението от i.Optics: острота за всяко око, контраст, астигматизъм, цветно зрение и решетка на Амслер. Резултат за 2–7 минути.">
 <meta name="twitter:image" content="https://ioptics-bg.com/images/iris_banner.jpg">
 <link rel="icon" href="/images/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,7 +101,7 @@ ul.dots{margin:12px 0 20px;padding-left:20px;color:var(--muted)}
 <body>
 <div class="wrap">
   <div class="top">
-    <a href="index.html" aria-label="iOptics – начало"><img src="images/logo.png" alt="iOptics – оптика в Самоков"></a>
+    <a href="index.html" aria-label="i.Optics – начало"><img src="images/logo.png" alt="i.Optics – оптика в Самоков"></a>
     <a class="back" href="index.html">← Към сайта</a>
   </div>
   <main id="app" class="card" aria-live="polite"></main>
@@ -337,7 +337,7 @@ function ams(e){
 function vaTxt(o){if(!o||o.v===null)return 'под 0,1';return (o.capped?'поне ':'')+String(o.v).replace('.',',')}
 function vaSt(o){if(!o||o.v===null||o.v<0.5)return 'alert';if(o.v<0.8)return 'warn';return 'ok'}
 function results(){
-  var R=S.r,cards=[],alerts=[],recs=[],share=['Тест за зрението iOptics ('+(S.mode==='full'?'пълен':'бърз')+', '+(S.dist/1000)+' м'+(S.calibrated?'':', без калибриране')+'):'];
+  var R=S.r,cards=[],alerts=[],recs=[],share=['Тест за зрението i.Optics ('+(S.mode==='full'?'пълен':'бърз')+', '+(S.dist/1000)+' м'+(S.calibrated?'':', без калибриране')+'):'];
   var lab={ok:'Добре',warn:'За проверка',alert:'Понижено'};
   ['R','L'].forEach(function(e){var o=R['va'+e],st=vaSt(o);cards.push(['Острота – '+EYE[e]+' око',lab[st]+' · '+vaTxt(o),st]);share.push('Острота '+EYE[e]+' око: '+vaTxt(o))});
   var sR=vaSt(R.vaR),sL=vaSt(R.vaL);
@@ -361,7 +361,7 @@ function results(){
     }
     var mR=R.amsR,mL=R.amsL;
     cards.push(['Решетка на Амслер',(mR||mL)?'Има промени':'Нормално',(mR||mL)?'alert':'ok']);share.push('Амслер: '+((mR||mL)?'промени':'норма'));
-    if(mR||mL)alerts.push('Изкривените или липсващи участъци в решетката на Амслер могат да са признак на промени в макулата (центъра на ретината). Очилата не решават това – запишете час при офталмолог възможно най-скоро. В iOptics веднъж месечно преглежда офталмолог.');
+    if(mR||mL)alerts.push('Изкривените или липсващи участъци в решетката на Амслер могат да са признак на промени в макулата (центъра на ретината). Очилата не решават това – запишете час при офталмолог възможно най-скоро. В i.Optics веднъж месечно преглежда офталмолог.');
   }
   if(!recs.length&&!alerts.length)recs.push('Резултатите изглеждат добре. Онлайн тестът обаче не измерва точния диоптър и не открива всичко – препоръчваме цялостен анализ на зрението веднъж годишно, а след 40 г. и проверка на очното налягане.');
   var bad=cards.filter(function(x){return x[2]!=='ok'}).length;
@@ -373,7 +373,7 @@ function results(){
   (S.calibrated?'':'<p class="note">Екранът не е калибриран, затова стойностите са приблизителни.</p>')+
   '<div class="notice info"><h3>Какво означава</h3><ul class="dots" style="margin:8px 0 0;color:inherit">'+recs.map(function(r){return '<li>'+r+'</li>'}).join('')+'</ul></div>'+
   '<div class="cta"><div><h3 style="margin:0 0 4px">Проверете със сигурност</h3><p>Анализ на зрението с Visionix VX120+ – рефракция, налягане, скрийнинг за глаукома и катаракта. Тел. 0883 330 599</p></div><a class="btn primary" href="'+CAL+'" target="_blank" rel="noopener">Запазете час</a></div>'+
-  '<div class="row"><button class="btn" id="viber" type="button">Изпратете резултата по Viber</button><button class="btn" id="copy" type="button">Копирайте резултата</button></div><p class="note" id="cmsg" role="status"></p><p class="note">Не се копира? <a href="#" id="vfwd">Изпратете текста директно през Viber</a> и изберете iOptics от списъка.</p><pre id="rtext" hidden style="white-space:pre-wrap;background:var(--bg);border-radius:12px;padding:12px;font:inherit;font-size:14px;user-select:all"></pre>'+
+  '<div class="row"><button class="btn" id="viber" type="button">Изпратете резултата по Viber</button><button class="btn" id="copy" type="button">Копирайте резултата</button></div><p class="note" id="cmsg" role="status"></p><p class="note">Не се копира? <a href="#" id="vfwd">Изпратете текста директно през Viber</a> и изберете i.Optics от списъка.</p><pre id="rtext" hidden style="white-space:pre-wrap;background:var(--bg);border-radius:12px;padding:12px;font:inherit;font-size:14px;user-select:all"></pre>'+
   (S.mode==='full'?'<div class="notice warn"><h3>Последна стъпка</h3><p>Отговорете на 7 кратки въпроса за начина ви на живот и ще ви препоръчаме вид лещи.</p><a class="btn primary" href="vaprosnik.html" style="margin-top:12px">Към въпросника</a></div>':'<div class="notice warn"><h3>Искате по-пълна картина?</h3><p>Пълният тест проверява и контраст, астигматизъм, цветове, четене и решетка на Амслер.</p><button class="btn primary" id="full" type="button" style="margin-top:12px">Направете пълния тест</button></div>')+
   '<div class="row"><button class="btn" id="again" type="button">Започнете отначало</button></div></div>');
   function syncCopy(){var t=document.createElement('textarea');t.value=stext;t.setAttribute('readonly','');t.style.position='absolute';t.style.left='-9999px';t.style.fontSize='16px';document.body.appendChild(t);
@@ -382,7 +382,7 @@ function results(){
   var msg=function(t){document.getElementById('cmsg').innerHTML=t};
   on('copy',function(){copyAll().then(function(ok){msg(ok?'Резултатът е копиран.':'Не успяхме да копираме автоматично – маркирайте текста по-долу и го копирайте.');if(!ok)showText()})});
   on('viber',function(){copyAll().then(function(ok){
-    msg(ok?'Резултатът е копиран. В чата с iOptics задръжте пръст в полето за писане → „Постави“ → „Изпрати“.':'Копирайте текста по-долу и го поставете в чата.');
+    msg(ok?'Резултатът е копиран. В чата с i.Optics задръжте пръст в полето за писане → „Постави“ → „Изпрати“.':'Копирайте текста по-долу и го поставете в чата.');
     if(!ok)showText();
     setTimeout(function(){window.location.href='viber://chat?number='+encodeURIComponent(PHONE)},350);
   })});
