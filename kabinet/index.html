@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Кабинет | iOptics</title>
+<title>Кабинет | i.Optics</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Дигитална таблица за изследване на зрението за оптометристи – вход след регистрация.">
 <link rel="icon" href="/images/logo.png">
@@ -70,17 +70,35 @@ input:focus{outline:3px solid var(--accent-soft);border-color:var(--accent)}
 .srow small{display:block;color:var(--muted);font-size:.8em;font-weight:400}
 .srow em{font-style:normal;font-weight:600;color:var(--accent);white-space:nowrap}
 .cardbox{display:grid;place-items:center;min-height:40vh;background:var(--surface);border-radius:20px;padding:20px;overflow:hidden}
-.card{border:3px solid var(--accent);background:rgba(47,69,216,.12);border-radius:3.2%/5%}
+.card{border:3px solid var(--accent);background:rgba(47,69,216,.12);border-radius:3.2%/5%;box-sizing:border-box;flex:none}
+.calinfo{font-family:var(--display);font-weight:500;font-size:1.05em;margin:.9em 0 0;font-variant-numeric:tabular-nums}
+/* Нисък екран (телевизионна приставка показва 960×540): всичко да се събира без превъртане */
+@media (max-height:620px){
+  .view{padding-block:18px 14px}
+  .khead{margin-bottom:.8em}
+  h1{font-size:28px}
+  .tiles{gap:.6em}
+  .tile{min-height:0;padding:.75em 1em}
+  .hrow{margin-top:.9em;gap:.5em}
+  .btn{min-height:2.5em;padding:.5em 1.1em}
+  .khint{margin-top:.7em}
+  .lead{margin-bottom:.6em}
+  .cardbox{min-height:150px;padding:12px}
+  .calinfo{margin-top:.6em}
+  .srow{padding:.6em 1em}
+  .srows{gap:.4em}
+}
 
 /* ---- Тест на цял екран ---- */
 #k-test{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:none;z-index:5}
 #k-test.cursor{cursor:default}
-#k-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#k-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;box-sizing:border-box}
 #k-stage svg{display:block;overflow:hidden;flex:none}
 .line{display:flex;align-items:center;justify-content:center}
 .chart{display:flex;flex-direction:column;align-items:center}
 .crow{position:relative}
 .rlab{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:24px;white-space:nowrap;font:600 14px/1 var(--body);color:#99a3ad}
+.crow.cur .rlab{color:#5b6b7a}
 .split{display:flex;width:100%;height:100%}
 .half{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .bands{display:flex;flex-direction:column;gap:0}
@@ -97,11 +115,17 @@ body.testing{overflow:hidden}
 <!-- ======= Вход / регистрация ======= -->
 <main class="auth" id="auth" hidden>
   <div class="abox">
-    <a href="/"><img src="/images/logo.png" alt="iOptics"></a>
+    <a href="/"><img src="/images/logo.png" alt="i.Optics"></a>
     <div id="a-setup" hidden>
       <h1>Кабинетът още не е настроен</h1>
       <p>Попълнете данните на Firebase проекта във файла <code>kabinet/firebase-config.js</code>. Инструкции има в <code>kabinet/README.md</code>.</p>
       <button class="btn" id="a-demo" hidden>Демо без вход (само локално)</button>
+    </div>
+    <div id="a-offline" hidden>
+      <h1>Няма връзка</h1>
+      <p>Кабинетът не успя да се свърже със сървъра за вход. Проверете интернет връзката и опитайте отново.</p>
+      <button class="btn primary" id="a-retry">Опитай отново</button>
+      <button class="btn" id="a-demo2" hidden>Демо без вход (само локално)</button>
     </div>
     <div id="a-forms" hidden>
       <h1>Кабинет за специалисти</h1>
@@ -167,9 +191,10 @@ body.testing{overflow:hidden}
   var local = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
   $('auth').hidden = false;
 
-  if (!cfg.apiKey || typeof firebase === 'undefined') {
-    $('a-setup').hidden = false;
-    if (local) { $('a-demo').hidden = false; $('a-demo').onclick = function () { $('auth').hidden = true; Kabinet.start('Демо'); }; }
+  function demo(btn) { if (!local) return; btn.hidden = false; btn.onclick = function () { $('auth').hidden = true; Kabinet.start('Демо'); }; }
+  if (!cfg.apiKey) { $('a-setup').hidden = false; demo($('a-demo')); return; }
+  if (typeof firebase === 'undefined') { // библиотеката за вход не се зареди – най-често няма интернет
+    $('a-offline').hidden = false; $('a-retry').onclick = function () { location.reload(); }; $('a-retry').focus(); demo($('a-demo2'));
     return;
   }
 
@@ -195,6 +220,8 @@ body.testing{overflow:hidden}
     document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
     $('f-login').hidden = t !== 'login'; $('f-register').hidden = t !== 'register'; msg($('a-msg'), '');
   }
+  // На телевизор: фокусът е в първото поле, за да може да се пише веднага с дистанционното.
+  function focusForm() { var f = $('f-login').hidden ? $('f-register') : $('f-login'); try { f.elements[0].focus({ preventScroll: true }); } catch (e) {} }
   document.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { tab(b.dataset.tab); }; });
 
   $('f-login').onsubmit = function (e) {
@@ -237,20 +264,20 @@ body.testing{overflow:hidden}
   $('a-out').onclick = function () { auth.signOut(); };
   window.KabinetLogout = function () { auth.signOut(); };
 
+  // Кабинетът тръгва веднага с настройките на устройството (работи и без интернет);
+  // предпочитанията от акаунта се прилагат, когато пристигнат.
   function enter(u) {
     var ref = db.collection('users').doc(u.uid);
-    ref.get().then(function (snap) { return snap.exists ? snap.data() : null; }).catch(function () { return null; }).then(function (data) {
-      $('auth').hidden = true;
-      Kabinet.start(u.displayName || u.email, {
-        data: data,
-        save: function (patch) { patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); ref.set(patch, { merge: true }).catch(function () {}); }
-      });
+    $('auth').hidden = true;
+    Kabinet.start(u.displayName || u.email, {
+      save: function (patch) { patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); ref.set(patch, { merge: true }).catch(function () {}); }
     });
+    ref.get().then(function (snap) { if (snap.exists && auth.currentUser && auth.currentUser.uid === u.uid) Kabinet.sync(snap.data()); }).catch(function () {});
   }
 
   auth.onAuthStateChanged(function (u) {
     if (!u) {
-      Kabinet.stop(); $('auth').hidden = false; $('a-verify').hidden = true; $('a-forms').hidden = false; tab('login');
+      Kabinet.stop(); $('auth').hidden = false; $('a-verify').hidden = true; $('a-forms').hidden = false; tab('login'); focusForm();
       return;
     }
     if (!u.emailVerified) { $('auth').hidden = false; showVerify(u); return; }
