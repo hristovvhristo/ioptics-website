@@ -85,6 +85,25 @@ const ok = (c, m, extra) => { out.push((c ? 'PASS ' : 'FAIL ') + m + (extra !== 
   await key(p, 'ArrowRight'); ok(/единичен знак/.test(await info(p)), '▶ единичен знак');
   await key(p, 'ArrowLeft', 2); ok(/· таблица ·/.test(await info(p)), '◀◀ таблица');
 
+  // Червено-зелен фон под същите знаци
+  const svgs = sel => p.evaluate(s => [...document.querySelectorAll(s)].map(e => e.innerHTML), sel);
+  const halves = () => p.evaluate(() => [...document.querySelectorAll('#k-stage .half')].map(h => ({ bg: h.style.background, svg: [...h.querySelectorAll('svg')].map(e => e.innerHTML) })));
+  for (let i = 0; i < 20 && !/V 1,0 /.test(await info(p)); i++) await key(p, 'ArrowDown');
+  await key(p, 'ArrowRight'); const line = await svgs('#k-stage svg');
+  await key(p, 'ArrowRight', 2); ok(/ред червено-зелен/.test(await info(p)), '▶▶ от „ред“ към „ред червено-зелен“', await info(p));
+  let hv = await halves();
+  ok(hv.length === 2 && /210, 0, 0/.test(hv[0].bg) && /0, 120, 0/.test(hv[1].bg), 'вляво червено, вдясно зелено');
+  ok(hv.length === 2 && hv[0].svg.join() === hv[1].svg.join() && hv[0].svg.length >= 1 && hv[0].svg.join() === line.slice(0, hv[0].svg.length).join(), 'и в двете половини са същите знаци като в реда', hv[0].svg.length + ' от ' + line.length);
+  await key(p, 'ArrowDown'); ok(/V 1,25/.test(await info(p)) && (await halves()).length === 2, '▼ смалява и в червено-зелен режим', await info(p));
+  await key(p, 'ArrowUp');
+  await key(p, '5'); ok(/· ред ·/.test(await info(p)) && (await svgs('#k-stage svg')).join() === line.join(), '5 връща към „ред“ със същите знаци');
+  await key(p, 'ArrowRight'); const single = await svgs('#k-stage svg');
+  await key(p, '5'); hv = await halves(); ok(/знак червено-зелен/.test(await info(p)) && hv.length === 2 && hv[0].svg.length === 1 && hv[0].svg[0] === single[0] && hv[1].svg[0] === single[0], '5 при единичен знак: същият знак на червено и зелено', await info(p));
+  await key(p, 'Enter'); hv = await halves(); ok(hv.length === 2 && hv[0].svg[0] === hv[1].svg[0], 'OK сменя знака и в двете половини');
+  await key(p, '5'); ok(/единичен знак/.test(await info(p)), '5 изключва червено-зеления фон');
+  await key(p, '5'); await key(p, 'ArrowDown', 20); await key(p, 'ArrowUp', 20); ok(!(await stageBad(p)), 'червено-зелен: всички размери');
+  await key(p, '5'); await key(p, 'ArrowLeft', 2); ok(/· таблица ·/.test(await info(p)), 'обратно към таблица');
+
   for (const d of '123456789') { // всеки тест: всички размери и режими, без счупени стойности
     await key(p, d); await key(p, 'ArrowDown', 20); let bad = await stageBad(p);
     await key(p, 'ArrowUp', 20); bad = bad || await stageBad(p);
@@ -93,6 +112,8 @@ const ok = (c, m, extra) => { out.push((c ? 'PASS ' : 'FAIL ') + m + (extra !== 
   }
   await key(p, 'Escape'); await p.waitForTimeout(150);
   ok(await view(p) === 'k-home' && await atBase(p), 'един Назад връща в менюто и след прескачане между тестове');
+  await key(p, '5'); ok(/Червено-зелен тест/.test(await info(p)), '5 от менюто отваря отделния червено-зелен тест');
+  await key(p, 'Escape'); await p.waitForTimeout(150);
   for (const n of ['worth', 'maddox']) {
     await p.click(`[data-open=${n}]`); await key(p, 'ArrowDown', 20); await key(p, 'ArrowUp', 20); await key(p, 'ArrowRight');
     ok(!(await stageBad(p)), n + ': всички размери'); await key(p, 'Escape'); await p.waitForTimeout(150);
