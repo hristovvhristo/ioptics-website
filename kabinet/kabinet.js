@@ -3,7 +3,7 @@
    цветни бутони на телевизионното дистанционно. Работи и с мишка/тъч. */
 (function () {
   'use strict';
-  var VERSION = '1.2.1';
+  var VERSION = '1.3';
 
   /* ---------- Настройки ----------
      На устройството (важат за конкретния екран и стая): калибриране, разстояние, огледало.
@@ -128,7 +128,7 @@
     for (var i = 0; i < items.length; i++) h += optSVG(set, items[i], px, color);
     return h + '</div>';
   }
-  function fitCount(px, max) { return Math.max(1, Math.min(max, Math.floor((innerWidth * 0.94 + px) / (2 * px)))); }
+  function fitCount(px, max, width) { return Math.max(1, Math.min(max, Math.floor(((width || innerWidth) * 0.94 + px) / (2 * px)))); }
 
   /* ---------- Цветове ---------- */
   function grayForContrast(c) { // Weber контраст върху бял фон
@@ -144,7 +144,9 @@
 
   /* ---------- Тестове ---------- */
   var st = { idx: 10, mode: 0, cache: {}, alt: 0, contrast: 0 };
-  var MODES = ['таблица', 'ред', 'единичен знак'];
+  // Режими на оптотипите. 3 и 4 са същият ред / знак върху червено-зелен фон (дуохром).
+  var MODES = ['таблица', 'ред', 'единичен знак', 'ред червено-зелен', 'знак червено-зелен'];
+  var RG_OF = [3, 3, 4, 1, 2]; // червен бутон / 5: към червено-зелен режим и обратно
   var CONTRASTS = [1, 0.5, 0.25, 0.125, 0.063, 0.032, 0.016];
 
   function itemsFor(set, idx, n) {
@@ -167,12 +169,19 @@
 
   function acuityScreen(set) {
     return {
-      title: SETS[set].name, bg: function () { return S.inverse ? '#000' : '#fff'; },
-      keys: '▲▼ размер · ◀▶ ' + MODES.join(' / ') + ' · OK нови знаци',
+      title: SETS[set].name, bg: function () { return st.mode >= 3 ? '#000' : S.inverse ? '#000' : '#fff'; },
+      keys: '▲▼ размер · ◀▶ таблица / ред / знак / червено-зелено · 5 или червен бутон – червено-зелен фон · OK нови знаци',
       render: function () {
         clampIdx();
         var fg = S.inverse ? '#fff' : '#000', h = '';
-        if (st.mode === 2) {
+        if (st.mode >= 3) {
+          // Същите знаци като в „ред“ / „единичен знак“, вляво на червено и вдясно на зелено.
+          while (st.idx < LAST && letterPx(st.idx) > innerWidth * 0.42) st.idx++;
+          var q = letterPx(st.idx), its = st.mode === 4 ? itemsFor(set, st.idx, 1)
+            : itemsFor(set, st.idx, fitCount(q, 5)).slice(0, fitCount(q, 5, innerWidth / 2));
+          var half = function (col) { return '<div class="half" style="background:' + col + '">' + lineHTML(set, its, q, '#000') + '</div>'; };
+          h = '<div class="split">' + half(RED) + half(GREEN) + '</div>';
+        } else if (st.mode === 2) {
           h = lineHTML(set, itemsFor(set, st.idx, 1), letterPx(st.idx), fg);
         } else if (st.mode === 1) {
           var px = letterPx(st.idx);
@@ -199,8 +208,9 @@
         return vaLabel(st.idx) + ' · ' + MODES[st.mode] + ' · ' + fmtDist() + strokeWarn(st.idx);
       },
       up: function () { st.idx--; }, down: function () { st.idx++; },
-      left: function () { st.mode = (st.mode + 2) % 3; }, right: function () { st.mode = (st.mode + 1) % 3; },
-      ok: function () { st.cache = {}; }
+      left: function () { st.mode = (st.mode + MODES.length - 1) % MODES.length; }, right: function () { st.mode = (st.mode + 1) % MODES.length; },
+      ok: function () { st.cache = {}; },
+      duo: function () { st.mode = RG_OF[st.mode]; }
     };
   }
 
@@ -550,6 +560,8 @@
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     e.preventDefault();
     if (k === 'back') { back(); return; }
+    // В тест за острота червеният бутон и 5 слагат червено-зелен фон под същите знаци; другаде отварят дуохрома.
+    if ((k === 'red' || k === 'digit5') && cur && cur.duo) { cur.duo(); draw(); return; }
     if (k === 'red') return openTest('duo');
     if (k === 'green') return openTest('sloan');
     if (k === 'yellow') return openTest('astig');
