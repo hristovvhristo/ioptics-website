@@ -215,8 +215,14 @@ p{margin:0}
     var v = ans[Q[i].id];
     $('next').disabled = !(Q[i].type === 'multi' ? (v && v.length) : v);
   }
+  var pending = null;
   function pick(q, val){
-    if (q.type === 'single') { ans[q.id] = val; render(); setTimeout(next, 180); return; }
+    if (q.type === 'single') {
+      if (pending) return; // ignore double clicks while moving to the next question
+      ans[q.id] = val; render();
+      pending = setTimeout(function(){ pending = null; next(); }, 180);
+      return;
+    }
     var a = (ans[q.id] || []).slice();
     if (val === 'none') a = a.indexOf('none') > -1 ? [] : ['none'];
     else { a = a.filter(function(x){ return x !== 'none'; }); var k = a.indexOf(val); if (k > -1) a.splice(k,1); else a.push(val); }
@@ -327,7 +333,7 @@ p{margin:0}
 
   $('start').addEventListener('click', function(){ i = 0; render(); show('v-q'); });
   $('next').addEventListener('click', next);
-  $('prev').addEventListener('click', function(){ if (i > 0) { i--; render(); } });
+  $('prev').addEventListener('click', function(){ clearTimeout(pending); pending = null; if (i > 0) { i--; render(); } });
   $('alert-go').addEventListener('click', function(){ i++; render(); show('v-q'); });
   $('alert-back').addEventListener('click', function(){ alertShown = false; render(); show('v-q'); });
   $('restart').addEventListener('click', function(){ ans = {}; i = 0; alertShown = false; show('v-intro'); });
