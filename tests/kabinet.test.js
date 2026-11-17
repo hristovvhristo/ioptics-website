@@ -102,6 +102,20 @@ const ok = (c, m, extra) => { out.push((c ? 'PASS ' : 'FAIL ') + m + (extra !== 
   await key(p, 'ArrowRight', 5); ok(/4,5 м/.test(await p.innerText('[data-set=dist]')), '▶ променя разстоянието');
   await key(p, 'ArrowDown'); await key(p, 'Enter'); ok(/Включен/.test(await p.innerText('[data-set=mirror]')), 'OK включва огледалото');
   await key(p, 'ArrowDown'); await key(p, 'ArrowRight'); ok(/6\/6/.test(await p.innerText('[data-set=not]')), '▶ сменя означението');
+  // С мишка / пръст: ◀ ▶ до стойността
+  await p.click('[data-set=dist] [data-dir="-1"]'); ok(/4,4 м/.test(await p.innerText('[data-set=dist]')), 'мишка: ◀ намалява разстоянието', await p.innerText('[data-set=dist] .sval'));
+  await p.click('[data-set=dist] [data-dir="1"]'); ok(/4,5 м/.test(await p.innerText('[data-set=dist]')), 'мишка: ▶ увеличава разстоянието');
+  await p.click('[data-set=dist] b'); ok(/4,5 м/.test(await p.innerText('[data-set=dist]')), 'мишка: клик по надписа не променя разстоянието');
+  const dl = await p.locator('[data-set=dist] [data-dir="-1"]').boundingBox();
+  await p.mouse.move(dl.x + dl.width / 2, dl.y + dl.height / 2); await p.mouse.down(); await p.waitForTimeout(1000); await p.mouse.up(); await p.waitForTimeout(100);
+  const held = parseFloat((await p.innerText('[data-set=dist] .sval')).replace(',', '.'));
+  ok(held <= 4.0 && held >= 1, 'мишка: задържане на ◀ намалява бързо', held);
+  await p.click('[data-set=dist] [data-dir="-1"]'); const one = parseFloat((await p.innerText('[data-set=dist] .sval')).replace(',', '.'));
+  ok(Math.abs(held - 0.1 - one) < 0.001 || one === 1, 'след задържане кликът пак е една стъпка', held + ' → ' + one);
+  await p.click('[data-set=dist]'); await key(p, 'ArrowRight', Math.round((4.5 - one) * 10));
+  ok(/4,5 м/.test(await p.innerText('[data-set=dist]')), 'връщане на 4,5 м с ▶');
+  await p.click('[data-set=not] [data-dir="-1"]'); ok(/десетична/.test(await p.innerText('[data-set=not]')), 'мишка: ◀ на означението връща назад');
+  await p.click('[data-set=not] [data-dir="1"]'); ok(/6\/6/.test(await p.innerText('[data-set=not]')), 'мишка: ▶ на означението');
   await key(p, 'Escape'); await p.waitForTimeout(150);
   ok(await view(p) === 'k-home' && await atBase(p), 'Назад от настройките връща в менюто');
   await key(p, '1'); while (!/· таблица ·/.test(await info(p))) await key(p, 'ArrowRight');
