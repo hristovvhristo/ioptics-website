@@ -3,7 +3,7 @@
    цветни бутони на телевизионното дистанционно. Работи и с мишка/тъч. */
 (function () {
   'use strict';
-  var VERSION = '1.3';
+  var VERSION = '1.3.1';
 
   /* ---------- Настройки ----------
      На устройството (важат за конкретния екран и стая): калибриране, разстояние, огледало.
@@ -144,9 +144,9 @@
 
   /* ---------- Тестове ---------- */
   var st = { idx: 10, mode: 0, cache: {}, alt: 0, contrast: 0 };
-  // Режими на оптотипите. 3 и 4 са същият ред / знак върху червено-зелен фон (дуохром).
-  var MODES = ['таблица', 'ред', 'единичен знак', 'ред червено-зелен', 'знак червено-зелен'];
-  var RG_OF = [3, 3, 4, 1, 2]; // червен бутон / 5: към червено-зелен режим и обратно
+  // Режими на оптотипите; 3 е червено-зелен фон (дуохром) с три реда знаци.
+  var MODES = ['таблица', 'ред', 'единичен знак', 'червено-зелено'];
+  var RG = 3;
   var CONTRASTS = [1, 0.5, 0.25, 0.125, 0.063, 0.032, 0.016];
 
   function itemsFor(set, idx, n) {
@@ -164,23 +164,44 @@
     var phys = letterPx(idx) / 5 * dpr();
     return phys < 1.5 ? ' · ⚠ чертата е ' + fmtNum(phys, 1) + ' пиксела – твърде малко за този екран' : '';
   }
+  /* Червено-зелено (дуохром): три реда – по-голям, текущ, по-малък – по 3 знака.
+     Вляво на червено и вдясно на зелено са същите знаци, подредени плътно до границата,
+     за да се сравняват лесно. Текущият размер е в средата и винаги има ред над и под него. */
+  function rgFit(idx) {
+    var big = letterPx(idx - 1), small = letterPx(idx + 1), gap = Math.max(8, small * 1.2);
+    var h = (big + letterPx(idx) + small) * 1.9;
+    return big * 5 + gap <= innerWidth / 2 * 0.94 && h <= availH() * 0.92;
+  }
+  function rgClamp() {
+    st.idx = Math.max(1, Math.min(LAST - 1, st.idx));
+    while (st.idx < LAST - 1 && !rgFit(st.idx)) st.idx++;
+  }
+  function rgHTML(set) {
+    var rows = [st.idx - 1, st.idx, st.idx + 1], gap = Math.max(8, letterPx(st.idx + 1) * 1.2), body = '';
+    rows.forEach(function (j) {
+      var p = letterPx(j);
+      body += '<div style="margin:' + (p * 0.45).toFixed(1) + 'px 0">' + lineHTML(set, itemsFor(set, j, 3), p, '#000') + '</div>';
+    });
+    return '<div class="split rg">' +
+      '<div class="half rgr" style="background:' + RED + ';padding-right:' + gap.toFixed(1) + 'px">' + body + '</div>' +
+      '<div class="half rgg" style="background:' + GREEN + ';padding-left:' + gap.toFixed(1) + 'px">' + body + '</div></div>';
+  }
+
   // Надписите за специалиста остават четливи на самия екран и в огледален режим.
   function unflip() { return S.mirror ? ' style="transform:translateY(-50%) scaleX(-1)"' : ''; }
 
   function acuityScreen(set) {
     return {
-      title: SETS[set].name, bg: function () { return st.mode >= 3 ? '#000' : S.inverse ? '#000' : '#fff'; },
-      keys: '▲▼ размер · ◀▶ таблица / ред / знак / червено-зелено · 5 или червен бутон – червено-зелен фон · OK нови знаци',
+      title: SETS[set].name, bg: function () { return st.mode === RG ? '#000' : S.inverse ? '#000' : '#fff'; },
+      keys: '▲▼ размер · ◀▶ таблица / ред / знак / червено-зелено · 5 или червен бутон – червено-зелено · OK нови знаци',
       render: function () {
         clampIdx();
         var fg = S.inverse ? '#fff' : '#000', h = '';
-        if (st.mode >= 3) {
-          // Същите знаци като в „ред“ / „единичен знак“, вляво на червено и вдясно на зелено.
-          while (st.idx < LAST && letterPx(st.idx) > innerWidth * 0.42) st.idx++;
-          var q = letterPx(st.idx), its = st.mode === 4 ? itemsFor(set, st.idx, 1)
-            : itemsFor(set, st.idx, fitCount(q, 5)).slice(0, fitCount(q, 5, innerWidth / 2));
-          var half = function (col) { return '<div class="half" style="background:' + col + '">' + lineHTML(set, its, q, '#000') + '</div>'; };
-          h = '<div class="split">' + half(RED) + half(GREEN) + '</div>';
+        if (st.mode !== RG) st.prevMode = st.mode; // към този режим се връща 5 / червеният бутон
+        if (st.mode === RG) {
+          rgClamp();
+          stage.innerHTML = rgHTML(set);
+          return vaLabel(st.idx) + ' (среден ред) · червено-зелено · ' + fmtDist() + strokeWarn(st.idx + 1);
         } else if (st.mode === 2) {
           h = lineHTML(set, itemsFor(set, st.idx, 1), letterPx(st.idx), fg);
         } else if (st.mode === 1) {
@@ -210,7 +231,8 @@
       up: function () { st.idx--; }, down: function () { st.idx++; },
       left: function () { st.mode = (st.mode + MODES.length - 1) % MODES.length; }, right: function () { st.mode = (st.mode + 1) % MODES.length; },
       ok: function () { st.cache = {}; },
-      duo: function () { st.mode = RG_OF[st.mode]; }
+      // 5 / червен бутон: към червено-зелено и обратно към режима, от който е дошъл.
+      duo: function () { st.mode = st.mode !== RG ? RG : st.prevMode >= 0 && st.prevMode < RG ? st.prevMode : 1; }
     };
   }
 
@@ -236,25 +258,19 @@
       title: 'Червено-зелен тест', bg: function () { return '#000'; },
       keys: '▲▼ размер · ◀▶ букви / кръгове · OK нови букви',
       render: function () {
+        if (st.alt % 2 === 0) { // букви: същата подредба като „червено-зелено“ в тестовете за острота
+          rgClamp();
+          stage.innerHTML = rgHTML('sloan');
+          return vaLabel(st.idx) + ' (среден ред) · ' + fmtDist() + strokeWarn(st.idx + 1);
+        }
         clampIdx(0.22);
         st.idx = Math.min(st.idx, LAST - 1);
-        var half = function (col) {
-          var h = '<div class="half" style="background:' + col + '">';
-          if (st.alt % 2 === 0) {
-            for (var k = -1; k <= 1; k++) {
-              var j = Math.max(0, Math.min(LAST, st.idx + k)), p = letterPx(j);
-              h += '<div style="margin:' + (p * 0.35).toFixed(1) + 'px 0">' + lineHTML('sloan', itemsFor('sloan', j, 3), p, '#000') + '</div>';
-            }
-          } else {
-            var p2 = letterPx(st.idx), sw = p2 / 5, rings = '';
-            for (var r = 1; r <= 4; r++) rings += '<circle cx="0" cy="0" r="' + (sw * (2 * r - 0.5)).toFixed(2) + '" fill="none" stroke="#000" stroke-width="' + sw.toFixed(2) + '"/>';
-            var R = sw * 8.5;
-            h += '<svg width="' + (2 * R).toFixed(1) + '" height="' + (2 * R).toFixed(1) + '" viewBox="' + (-R) + ' ' + (-R) + ' ' + 2 * R + ' ' + 2 * R + '">' + rings + '</svg>';
-          }
-          return h + '</div>';
-        };
-        stage.innerHTML = '<div class="split">' + half(RED) + half(GREEN) + '</div>';
-        return vaLabel(st.idx) + ' (среден ред) · ' + fmtDist();
+        // кръгове
+        var sw = letterPx(st.idx) / 5, rings = '', R = sw * 8.5;
+        for (var r = 1; r <= 4; r++) rings += '<circle cx="0" cy="0" r="' + (sw * (2 * r - 0.5)).toFixed(2) + '" fill="none" stroke="#000" stroke-width="' + sw.toFixed(2) + '"/>';
+        var svg = '<svg width="' + (2 * R).toFixed(1) + '" height="' + (2 * R).toFixed(1) + '" viewBox="' + (-R) + ' ' + (-R) + ' ' + 2 * R + ' ' + 2 * R + '">' + rings + '</svg>';
+        stage.innerHTML = '<div class="split"><div class="half" style="background:' + RED + '">' + svg + '</div><div class="half" style="background:' + GREEN + '">' + svg + '</div></div>';
+        return vaLabel(st.idx) + ' · кръгове · ' + fmtDist();
       },
       up: function () { st.idx--; }, down: function () { st.idx++; },
       left: function () { st.alt++; }, right: function () { st.alt++; },
