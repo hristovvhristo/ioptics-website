@@ -85,24 +85,39 @@ const ok = (c, m, extra) => { out.push((c ? 'PASS ' : 'FAIL ') + m + (extra !== 
   await key(p, 'ArrowRight'); ok(/единичен знак/.test(await info(p)), '▶ единичен знак');
   await key(p, 'ArrowLeft', 2); ok(/· таблица ·/.test(await info(p)), '◀◀ таблица');
 
-  // Червено-зелен фон под същите знаци
-  const svgs = sel => p.evaluate(s => [...document.querySelectorAll(s)].map(e => e.innerHTML), sel);
-  const halves = () => p.evaluate(() => [...document.querySelectorAll('#k-stage .half')].map(h => ({ bg: h.style.background, svg: [...h.querySelectorAll('svg')].map(e => e.innerHTML) })));
+  // Червено-зелено: три реда (по-голям, текущ, по-малък) по 3 знака, плътно до границата
+  const rg = () => p.evaluate(() => {
+    const hs = [...document.querySelectorAll('#k-stage .half')], W = innerWidth;
+    return hs.map(h => { const b = h.getBoundingClientRect();
+      return { bg: h.style.background, w: b.width,
+        rows: [...h.querySelectorAll('.line')].map(l => { const sv = [...l.querySelectorAll('svg')];
+          return { n: sv.length, size: parseFloat(sv[0].getAttribute('width')), html: sv.map(e => e.innerHTML).join(),
+            left: sv[0].getBoundingClientRect().left, right: sv[sv.length - 1].getBoundingClientRect().right }; }) }; });
+  });
   for (let i = 0; i < 20 && !/V 1,0 /.test(await info(p)); i++) await key(p, 'ArrowDown');
-  await key(p, 'ArrowRight'); const line = await svgs('#k-stage svg');
-  await key(p, 'ArrowRight', 2); ok(/ред червено-зелен/.test(await info(p)), '▶▶ от „ред“ към „ред червено-зелен“', await info(p));
-  let hv = await halves();
+  await key(p, 'ArrowRight'); const lineSize = await p.evaluate(() => parseFloat(document.querySelector('#k-stage svg').getAttribute('width')));
+  await key(p, 'ArrowRight', 2); ok(/V 1,0 \(среден ред\) · червено-зелено/.test(await info(p)), '▶▶ от „ред“ към „червено-зелено“', await info(p));
+  let hv = await rg();
   ok(hv.length === 2 && /210, 0, 0/.test(hv[0].bg) && /0, 120, 0/.test(hv[1].bg), 'вляво червено, вдясно зелено');
-  ok(hv.length === 2 && hv[0].svg.join() === hv[1].svg.join() && hv[0].svg.length >= 1 && hv[0].svg.join() === line.slice(0, hv[0].svg.length).join(), 'и в двете половини са същите знаци като в реда', hv[0].svg.length + ' от ' + line.length);
-  await key(p, 'ArrowDown'); ok(/V 1,25/.test(await info(p)) && (await halves()).length === 2, '▼ смалява и в червено-зелен режим', await info(p));
+  ok(hv.length === 2 && Math.abs(hv[0].w - hv[1].w) < 1, 'двете половини са равни', hv.map(h => h.w.toFixed(1)).join(' / '));
+  ok(hv[0].rows.length === 3 && hv[0].rows.every(r => r.n === 3), 'три реда по 3 знака');
+  ok(hv[0].rows[0].size > hv[0].rows[1].size && hv[0].rows[1].size > hv[0].rows[2].size, 'редовете са с различна големина (по-голям, текущ, по-малък)', hv[0].rows.map(r => r.size.toFixed(1)).join(' > '));
+  ok(Math.abs(hv[0].rows[1].size - lineSize) < 0.01, 'средният ред е избраният размер (V 1,0)');
+  ok(hv[0].rows.map(r => r.html).join() === hv[1].rows.map(r => r.html).join(), 'вляво и вдясно са същите знаци');
+  const mid = await p.evaluate(() => innerWidth / 2), gapMax = hv[0].rows[2].size * 1.2 + 1;
+  ok(hv[0].rows.every(r => mid - r.right >= 0 && mid - r.right <= gapMax) && hv[1].rows.every(r => r.left - mid >= 0 && r.left - mid <= gapMax), 'знаците са плътно до границата и от двете страни',
+     hv[0].rows.map(r => (mid - r.right).toFixed(1)).join(',') + ' | ' + hv[1].rows.map(r => (r.left - mid).toFixed(1)).join(','));
+  await key(p, 'ArrowDown'); hv = await rg(); ok(/V 1,25 \(среден ред\)/.test(await info(p)) && hv[0].rows.length === 3, '▼ смалява всичко с една стъпка', await info(p));
+  const before = hv[0].rows.map(r => r.html).join(); await key(p, 'Enter'); hv = await rg();
+  ok(hv[0].rows.map(r => r.html).join() !== before && hv[0].rows.map(r => r.html).join() === hv[1].rows.map(r => r.html).join(), 'OK сменя знаците и от двете страни еднакво');
   await key(p, 'ArrowUp');
-  await key(p, '5'); ok(/· ред ·/.test(await info(p)) && (await svgs('#k-stage svg')).join() === line.join(), '5 връща към „ред“ със същите знаци');
-  await key(p, 'ArrowRight'); const single = await svgs('#k-stage svg');
-  await key(p, '5'); hv = await halves(); ok(/знак червено-зелен/.test(await info(p)) && hv.length === 2 && hv[0].svg.length === 1 && hv[0].svg[0] === single[0] && hv[1].svg[0] === single[0], '5 при единичен знак: същият знак на червено и зелено', await info(p));
-  await key(p, 'Enter'); hv = await halves(); ok(hv.length === 2 && hv[0].svg[0] === hv[1].svg[0], 'OK сменя знака и в двете половини');
-  await key(p, '5'); ok(/единичен знак/.test(await info(p)), '5 изключва червено-зеления фон');
-  await key(p, '5'); await key(p, 'ArrowDown', 20); await key(p, 'ArrowUp', 20); ok(!(await stageBad(p)), 'червено-зелен: всички размери');
-  await key(p, '5'); await key(p, 'ArrowLeft', 2); ok(/· таблица ·/.test(await info(p)), 'обратно към таблица');
+  await key(p, '5'); ok(/единичен знак/.test(await info(p)), '5 връща към режима, от който е дошъл (единичен знак)', await info(p));
+  await key(p, 'ArrowLeft'); await key(p, '5'); ok(/червено-зелено/.test(await info(p)), '5 от „ред“ пуска червено-зелено');
+  await key(p, '5'); ok(/· ред ·/.test(await info(p)), '5 пак връща към „ред“');
+  await key(p, 'ArrowRight', 4); ok(/· ред ·/.test(await info(p)), '◀▶ имат 4 режима (няма „знак червено-зелен“)');
+  await key(p, '5'); await key(p, 'ArrowDown', 20); let hb = await rg(); ok(!(await stageBad(p)) && hb[0].rows.length === 3, 'червено-зелено: най-малките размери', await info(p));
+  await key(p, 'ArrowUp', 20); hb = await rg(); ok(!(await stageBad(p)) && hb[0].rows.length === 3 && hb[0].rows[0].right <= mid, 'червено-зелено: най-големите размери се събират', await info(p));
+  await key(p, '5'); await key(p, 'ArrowLeft'); ok(/· таблица ·/.test(await info(p)), 'обратно към таблица');
 
   for (const d of '123456789') { // всеки тест: всички размери и режими, без счупени стойности
     await key(p, d); await key(p, 'ArrowDown', 20); let bad = await stageBad(p);
@@ -113,6 +128,8 @@ const ok = (c, m, extra) => { out.push((c ? 'PASS ' : 'FAIL ') + m + (extra !== 
   await key(p, 'Escape'); await p.waitForTimeout(150);
   ok(await view(p) === 'k-home' && await atBase(p), 'един Назад връща в менюто и след прескачане между тестове');
   await key(p, '5'); ok(/Червено-зелен тест/.test(await info(p)), '5 от менюто отваря отделния червено-зелен тест');
+  hv = await rg(); ok(hv.length === 2 && hv[0].rows.length === 3 && hv[0].rows.map(r => r.html).join() === hv[1].rows.map(r => r.html).join(), 'отделният тест е със същата подредба (3 реда до границата)');
+  await key(p, 'ArrowRight'); ok(/кръгове/.test(await info(p)) && !(await stageBad(p)), 'отделният тест: кръгове');
   await key(p, 'Escape'); await p.waitForTimeout(150);
   for (const n of ['worth', 'maddox']) {
     await p.click(`[data-open=${n}]`); await key(p, 'ArrowDown', 20); await key(p, 'ArrowUp', 20); await key(p, 'ArrowRight');
