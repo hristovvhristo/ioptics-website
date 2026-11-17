@@ -23,8 +23,8 @@ android {
         applicationId 'bg.ioptics.kabinet'
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName '1.2'
+        versionCode 4
+        versionName '1.2.1'
     }
 
     // Ключът за подписване НЕ е в хранилището: kabinet.keystore и keystore.properties

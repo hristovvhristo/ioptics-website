@@ -3,7 +3,7 @@
    цветни бутони на телевизионното дистанционно. Работи и с мишка/тъч. */
 (function () {
   'use strict';
-  var VERSION = '1.2';
+  var VERSION = '1.2.1';
 
   /* ---------- Настройки ----------
      На устройството (важат за конкретния екран и стая): калибриране, разстояние, огледало.
@@ -448,16 +448,21 @@
   function renderSettings(keepFocus) {
     var ni = 0; NOT.forEach(function (n, i) { if (n[0] === S.notation) ni = i; });
     var rows = [
-      ['dist', 'Разстояние до пациента', '◀ ' + fmtDist() + ' ▶', 'При огледало: общото разстояние екран → огледало → пациент.'],
+      ['dist', 'Разстояние до пациента', fmtDist(), 'При огледало: общото разстояние екран → огледало → пациент.', true],
       ['mirror', 'Огледален режим', S.mirror ? 'Включен' : 'Изключен', 'Обръща таблицата, когато пациентът гледа през огледало.'],
-      ['not', 'Означение', '◀ ' + NOT[ni][1] + ' ▶', ''],
+      ['not', 'Означение', NOT[ni][1], '', true],
       ['inv', 'Фон на оптотипите', S.inverse ? 'Черен (светли знаци)' : 'Бял (черни знаци)', ''],
       ['lab', 'Стойности на екрана', S.labels ? 'Показват се' : 'Скрити', 'Малък ред най-долу с размера и подсказки за бутоните.']
     ];
     var h = '<header class="khead"><div><p class="eyebrow">Кабинет</p><h1>Настройки</h1></div></header><div class="srows">';
-    rows.forEach(function (r) { h += '<button class="srow" data-nav data-set="' + r[0] + '"><span><b>' + esc(r[1]) + '</b>' + (r[3] ? '<small>' + esc(r[3]) + '</small>' : '') + '</span><em>' + esc(r[2]) + '</em></button>'; });
+    // Стойностите със стрелки имат отделни ◀ ▶ за мишка и пръст (задържане – бърза промяна).
+    rows.forEach(function (r) {
+      var val = r[4] ? '<i class="sadj" data-dir="-1" title="Намали">◀</i><span class="sval">' + esc(r[2]) + '</span><i class="sadj" data-dir="1" title="Увеличи">▶</i>' : esc(r[2]);
+      h += '<button class="srow" data-nav data-set="' + r[0] + '"><span><b>' + esc(r[1]) + '</b>' + (r[3] ? '<small>' + esc(r[3]) + '</small>' : '') + '</span><em>' + val + '</em></button>';
+    });
     h += '</div><div class="hrow"><button class="btn primary" data-nav data-go="home">Готово</button></div>' +
-      '<p class="khint">◀ ▶ променят стойността, OK превключва. Разстоянието, огледалото и калибрирането се пазят на това устройство, останалите настройки – в акаунта ви.</p>';
+      '<p class="khint">' + (window.KabinetAndroid ? '◀ ▶ променят стойността, OK превключва.' : '◀ ▶ (на клавиатурата или до стойността) променят стойността – задръжте за бърза промяна.') +
+      ' Разстоянието, огледалото и калибрирането се пазят на това устройство, останалите – в акаунта ви.</p>';
     settings.innerHTML = h;
     if (keepFocus) { var el = settings.querySelector('[data-set="' + keepFocus + '"]'); if (el) el.focus(); }
   }
@@ -570,7 +575,11 @@
   function onClick(e) {
     var b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
     if (b.dataset.open) { goFull(); openTest(b.dataset.open); }
-    else if (b.dataset.set) adjSetting(b.dataset.set, 1);
+    else if (b.dataset.set) {
+      var dEl = e.target.closest('[data-dir]');
+      if (dEl) { if (holdFired) holdFired = false; else adjSetting(b.dataset.set, +dEl.dataset.dir); }
+      else if (b.dataset.set !== 'dist') adjSetting(b.dataset.set, 1); // разстоянието се мени само със стрелките
+    }
     else if (b.dataset.cal) { var n = +b.dataset.cal.slice(1); if (b.dataset.cal.charAt(0) === 'p') calPixel(n); else calInch(n); }
     else if (b.dataset.ctl) { var k = b.dataset.ctl; if (k === 'back') back(); else if (cur && cur[k]) { cur[k](); draw(); } }
     else if (b.dataset.go) {
@@ -599,6 +608,20 @@
     try { navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
   }
 
+  /* ---------- Задържане на ◀ ▶ в настройките ---------- */
+  var holdT = 0, holdI = 0, holdFired = false;
+  function holdStop() { clearTimeout(holdT); clearInterval(holdI); holdT = holdI = 0; }
+  function holdStart(e) {
+    var d = e.target.closest && e.target.closest('[data-dir]'), row = d && d.closest('[data-set]');
+    if (!d || !row) return;
+    var k = row.dataset.set, dir = +d.dataset.dir;
+    holdStop(); holdFired = false;
+    holdT = setTimeout(function () {
+      holdFired = true; adjSetting(k, dir);
+      holdI = setInterval(function () { adjSetting(k, dir); }, 90);
+    }, 450);
+  }
+
   /* ---------- Контроли с мишка / тъч ---------- */
   var hideT = 0;
   function pointerShow() { if (!cur) return; ctrls.classList.add('on'); test.classList.add('cursor'); clearTimeout(hideT); hideT = setTimeout(function () { ctrls.classList.remove('on'); test.classList.remove('cursor'); }, 3000); }
@@ -621,6 +644,8 @@
         root.addEventListener('click', onClick);
         test.addEventListener('pointermove', pointerShow);
         test.addEventListener('pointerdown', pointerShow);
+        settings.addEventListener('pointerdown', holdStart);
+        ['pointerup', 'pointercancel', 'blur'].forEach(function (ev) { window.addEventListener(ev, holdStop); });
         window.addEventListener('popstate', onPop);
         window.addEventListener('resize', function () { if (cur) draw(); else if (!calib.hidden) calShow(); else if (!home.hidden) renderHomeKeepFocus(); });
         document.addEventListener('visibilitychange', keepAwake);
