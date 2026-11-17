@@ -1,74 +1,104 @@
-/* iOptics Кабинет – дигитална таблица за изследване на зрението.
+/* i.Optics Кабинет – дигитална таблица за изследване на зрението.
    Управление: стрелки, OK (Enter), Назад (Esc/Backspace/бутон Back), цифри 1–9,
    цветни бутони на телевизионното дистанционно. Работи и с мишка/тъч. */
 (function () {
   'use strict';
+  var VERSION = '1.2';
 
-  /* ---------- Настройки ---------- */
+  /* ---------- Настройки ----------
+     На устройството (важат за конкретния екран и стая): калибриране, разстояние, огледало.
+     В акаунта (лични предпочитания, еднакви навсякъде): означение, фон, стойности на екрана. */
   var LS = 'kabinet.settings.v1';
-  var DEF = { mmPerPx: 0, distance: 4, mirror: false, notation: 'dec', inverse: false, labels: true };
+  var DEF = { pitch: 0, calScreen: '', distance: 4, mirror: false, notation: 'dec', inverse: false, labels: true };
+  var PREFS = ['notation', 'inverse', 'labels'];
+  var NOT = [['dec', 'десетична (V 1,0)'], ['m', 'Snellen 6/6'], ['ft', 'Snellen 20/20'], ['logmar', 'logMAR']];
   var S = loadS();
-  var remote = null; // { save(fn) } – синхронизация с акаунта
-  var cals = {};      // калибриране по екран: { "1920x1080": mmPerPx }
+  var remote = null; // { save(patch) } – записва предпочитанията в акаунта
+
+  function dpr() { return window.devicePixelRatio || 1; }
   function screenKey() { return screen.width + 'x' + screen.height; }
+  function validPref(k, v) {
+    if (k === 'notation') return NOT.some(function (n) { return n[0] === v; });
+    return typeof v === 'boolean';
+  }
   function loadS() {
     var r = {}, o = {};
     try { o = JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch (e) {}
     for (var k in DEF) r[k] = Object.prototype.hasOwnProperty.call(o, k) ? o[k] : DEF[k];
+    // Калибриране от версии до 1.1 (поле mmPerPx) не се приема: можеше да е грешно на големи
+    // екрани или пренесено от друг екран със същата резолюция. Екранът се калибрира наново.
+    if (typeof r.pitch !== 'number' || !(r.pitch > 0)) { r.pitch = 0; r.calScreen = ''; }
+    if (typeof r.distance !== 'number' || !(r.distance >= 1 && r.distance <= 8)) r.distance = DEF.distance;
+    r.mirror = r.mirror === true;
+    PREFS.forEach(function (p) { if (!validPref(p, r[p])) r[p] = DEF[p]; });
     return r;
   }
+  function saveS() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
   var saveT = 0;
-  function saveS() {
-    try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {}
-    if (S.mmPerPx) cals[screenKey()] = S.mmPerPx;
-    if (remote) { clearTimeout(saveT); saveT = setTimeout(function () { var o = {}; for (var k in DEF) if (k !== 'mmPerPx') o[k] = S[k]; remote.save({ settings: o, calibrations: cals }); }, 600); }
+  function savePrefs() {
+    saveS();
+    if (!remote) return;
+    clearTimeout(saveT);
+    saveT = setTimeout(function () { var o = {}; PREFS.forEach(function (k) { o[k] = S[k]; }); remote.save({ settings: o }); }, 600);
   }
   function applyRemote(d) {
-    if (!d) return;
-    if (d.settings) for (var k in DEF) if (k !== 'mmPerPx' && Object.prototype.hasOwnProperty.call(d.settings, k)) S[k] = d.settings[k];
-    if (d.calibrations) { cals = d.calibrations; if (cals[screenKey()]) S.mmPerPx = cals[screenKey()]; }
-    try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {}
+    if (!d || !d.settings) return false;
+    var changed = false;
+    PREFS.forEach(function (k) {
+      var v = d.settings[k];
+      if (validPref(k, v) && S[k] !== v) { S[k] = v; changed = true; }
+    });
+    if (changed) saveS();
+    return changed;
   }
-  function mmPx() { return S.mmPerPx || 0.2646; } // без калибриране: 96 dpi
+  // Калибрирането се пази като размер на един физически пиксел, затова не зависи от мащаба на браузъра.
+  function calibrated() { return S.pitch > 0 && S.calScreen === screenKey(); }
+  function mmPx() { return calibrated() ? S.pitch * dpr() : 0.2646; } // без калибриране: 96 dpi
+  function screenDiagPx() { return Math.sqrt(screen.width * screen.width + screen.height * screen.height); }
+  function fmtNum(v, d) { return v.toFixed(d).replace('.', ','); }
 
   /* ---------- Размери (logMAR 1,0 … −0,3) ---------- */
   var LOGMAR = [], DEC = ['0,1','0,125','0,16','0,2','0,25','0,32','0,4','0,5','0,63','0,8','1,0','1,25','1,6','2,0'];
   var M6 = ['60','48','38','30','24','19','15','12','9,5','7,5','6','4,8','3,8','3'];
   var F20 = ['200','160','125','100','80','63','50','40','32','25','20','16','12,5','10'];
   for (var i = 0; i < 14; i++) LOGMAR.push(Math.round((1 - i * 0.1) * 10) / 10);
+  var LAST = LOGMAR.length - 1;
   function letterPx(idx) {
     var arcmin = 5 * Math.pow(10, LOGMAR[idx]);
     return S.distance * 1000 * Math.tan(arcmin / 60 * Math.PI / 180) / mmPx();
   }
+  var INFO_H = 52; // място за реда със стойности най-долу
+  function availH() { return innerHeight - (S.labels ? INFO_H : 0); }
   function maxIdxFit(frac) { // най-големият знак, който се събира
-    var lim = Math.min(innerHeight, innerWidth) * frac;
+    var lim = Math.min(availH(), innerWidth) * frac;
     for (var i = 0; i < LOGMAR.length; i++) if (letterPx(i) <= lim) return i;
-    return LOGMAR.length - 1;
+    return LAST;
   }
   function vaLabel(idx) {
     var n = S.notation;
     if (n === 'm') return '6/' + M6[idx];
     if (n === 'ft') return '20/' + F20[idx];
-    if (n === 'logmar') return 'logMAR ' + String(LOGMAR[idx].toFixed(1)).replace('.', ',');
+    if (n === 'logmar') return 'logMAR ' + fmtNum(LOGMAR[idx], 1);
     return 'V ' + DEC[idx];
   }
-  function fmtDist() { return S.distance.toFixed(1).replace('.', ',') + ' м'; }
+  function fmtDist() { return fmtNum(S.distance, 1) + ' м'; }
 
-  /* ---------- Оптотипи (5×5 решетка) ---------- */
+  /* ---------- Оптотипи (решетка 5×5, дебелина на чертата 1) ---------- */
+  var LANDOLT_D = 'M4.949,2A2.5,2.5 0 1 0 4.949,3L3.914,3A1.5,1.5 0 1 1 3.914,2Z';
   var SLOAN = {
-    C: '<path d="M4.14,1.35A2,2 0 1 0 4.14,3.65"/>',
+    C: '<path fill="currentColor" stroke="none" d="' + LANDOLT_D + '"/>', // Sloan C е пръстенът на Ландолт
     D: '<path d="M0.5,0V5M0,0.5H2.5A2,2 0 0 1 2.5,4.5H0"/>',
     H: '<path d="M0.5,0V5M4.5,0V5M0.5,2.5H4.5"/>',
-    K: '<path d="M0.5,0V5M4.9,0L0.6,3.6M1.9,2.5L4.9,5"/>',
+    K: '<path d="M0.5,0V5M5.76,-0.72L0.6,3.6M1.9,2.5L5.5,5.5"/>',
     N: '<path d="M0.5,5V0M4.5,0V5M0.7,0.2L4.3,4.8"/>',
     O: '<circle cx="2.5" cy="2.5" r="2"/>',
-    R: '<path d="M0.5,5V0M0,0.5H3A1.25,1.25 0 0 1 3,3H0M2.6,3L4.8,5"/>',
+    R: '<path d="M0.5,5V0M0,0.5H3.5A1,1 0 0 1 3.5,2.5H0M2.75,2.7L4.65,5.5"/>',
     S: '<path d="M4.4,1.3C4,0.7 3.3,0.5 2.5,0.5C1.4,0.5 0.6,1 0.6,1.75C0.6,3.1 4.4,1.9 4.4,3.25C4.4,4.1 3.6,4.5 2.5,4.5C1.6,4.5 0.9,4.3 0.5,3.6"/>',
-    V: '<path d="M0.2,0L2.5,5L4.8,0"/>',
+    V: '<path d="M-0.03,-0.5L2.5,5L5.03,-0.5"/>',
     Z: '<path d="M0,0.5H4.6L0.4,4.5H5"/>'
   };
   var E_SHAPE = '<rect x="0" y="0" width="5" height="1"/><rect x="0" y="2" width="5" height="1"/><rect x="0" y="4" width="5" height="1"/><rect x="0" y="0" width="1" height="5"/>';
-  var LANDOLT = '<path fill-rule="evenodd" d="M4.949,2A2.5,2.5 0 1 0 4.949,3L3.914,3A1.5,1.5 0 1 1 3.914,2Z"/>';
+  var LANDOLT = '<path d="' + LANDOLT_D + '"/>';
   var SETS = {
     sloan: { name: 'Букви (Sloan)', pool: 'CDHKNORSVZ'.split('') },
     digits: { name: 'Цифри', pool: '023456789'.split('') },
@@ -77,7 +107,7 @@
   };
   function optSVG(set, v, px, color) {
     var a = '<svg class="opt" width="' + px.toFixed(2) + '" height="' + px.toFixed(2) + '" viewBox="0 0 5 5" aria-hidden="true">';
-    if (set === 'sloan') return a + '<g fill="none" stroke="' + color + '" stroke-width="1" stroke-miterlimit="10">' + SLOAN[v] + '</g></svg>';
+    if (set === 'sloan') return a + '<g fill="none" color="' + color + '" stroke="' + color + '" stroke-width="1" stroke-miterlimit="10">' + SLOAN[v] + '</g></svg>';
     if (set === 'digits') return a + '<text x="2.5" y="5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="6.98" fill="' + color + '">' + v + '</text></svg>';
     var shape = set === 'e' ? E_SHAPE : LANDOLT;
     return a + '<g fill="' + color + '" transform="rotate(' + v + ' 2.5 2.5)">' + shape + '</g></svg>';
@@ -122,16 +152,18 @@
     if (!st.cache[key]) st.cache[key] = pick(set, n);
     return st.cache[key];
   }
-  function clampIdx() {
-    var mx = maxIdxFit(0.8);
+  function clampIdx(frac) { // не по-голям знак, отколкото се събира на екрана
+    var mx = maxIdxFit(frac || 0.8);
     if (st.idx < mx) st.idx = mx;
-    if (st.idx > LOGMAR.length - 1) st.idx = LOGMAR.length - 1;
+    if (st.idx > LAST) st.idx = LAST;
   }
   // Дебелина на чертата във физически пиксели на екрана (на Android TV 1 CSS px често е 2 физически).
   function strokeWarn(idx) {
-    var phys = letterPx(idx) / 5 * (window.devicePixelRatio || 1);
-    return phys < 1.5 ? ' · ⚠ чертата е ' + phys.toFixed(1).replace('.', ',') + ' пиксела – твърде малко за този екран' : '';
+    var phys = letterPx(idx) / 5 * dpr();
+    return phys < 1.5 ? ' · ⚠ чертата е ' + fmtNum(phys, 1) + ' пиксела – твърде малко за този екран' : '';
   }
+  // Надписите за специалиста остават четливи на самия екран и в огледален режим.
+  function unflip() { return S.mirror ? ' style="transform:translateY(-50%) scaleX(-1)"' : ''; }
 
   function acuityScreen(set) {
     return {
@@ -147,11 +179,11 @@
           h = lineHTML(set, itemsFor(set, st.idx, fitCount(px, 5)), px, fg);
         } else {
           // таблица: текущият ред и съседните, колкото се съберат
-          var rows = [st.idx], H = letterPx(st.idx) * 1.6, up = st.idx - 1, dn = st.idx + 1, lim = innerHeight * 0.9;
+          var rows = [st.idx], H = letterPx(st.idx) * 1.6, up = st.idx - 1, dn = st.idx + 1, lim = availH() * 0.9;
           while (true) {
             var added = false;
             if (up >= 0 && H + letterPx(up) * 1.6 <= lim && rows.length < 5) { rows.unshift(up); H += letterPx(up) * 1.6; up--; added = true; }
-            if (dn < LOGMAR.length && H + letterPx(dn) * 1.6 <= lim && rows.length < 5) { rows.push(dn); H += letterPx(dn) * 1.6; dn++; added = true; }
+            if (dn <= LAST && H + letterPx(dn) * 1.6 <= lim && rows.length < 5) { rows.push(dn); H += letterPx(dn) * 1.6; dn++; added = true; }
             if (!added) break;
           }
           h = '<div class="chart">';
@@ -159,7 +191,7 @@
             var p = letterPx(rows[r]);
             h += '<div class="crow' + (rows[r] === st.idx ? ' cur' : '') + '" style="margin:' + (p * 0.3).toFixed(1) + 'px 0">' +
               lineHTML(set, itemsFor(set, rows[r], fitCount(p, 5)), p, fg) +
-              (S.labels ? '<span class="rlab">' + esc(vaLabel(rows[r])) + '</span>' : '') + '</div>';
+              (S.labels && (rows[r] === st.idx || p * 1.6 >= 16) ? '<span class="rlab"' + unflip() + '>' + esc(vaLabel(rows[r])) + '</span>' : '') + '</div>';
           }
           h += '</div>';
         }
@@ -194,13 +226,13 @@
       title: 'Червено-зелен тест', bg: function () { return '#000'; },
       keys: '▲▼ размер · ◀▶ букви / кръгове · OK нови букви',
       render: function () {
-        st.idx = Math.max(st.idx, maxIdxFit(0.22));
-        st.idx = Math.min(st.idx, LOGMAR.length - 2);
+        clampIdx(0.22);
+        st.idx = Math.min(st.idx, LAST - 1);
         var half = function (col) {
           var h = '<div class="half" style="background:' + col + '">';
           if (st.alt % 2 === 0) {
             for (var k = -1; k <= 1; k++) {
-              var j = Math.max(0, Math.min(LOGMAR.length - 1, st.idx + k)), p = letterPx(j);
+              var j = Math.max(0, Math.min(LAST, st.idx + k)), p = letterPx(j);
               h += '<div style="margin:' + (p * 0.35).toFixed(1) + 'px 0">' + lineHTML('sloan', itemsFor('sloan', j, 3), p, '#000') + '</div>';
             }
           } else {
@@ -222,9 +254,8 @@
       title: 'Астигматизъм', bg: function () { return '#fff'; },
       keys: '▲▼ дебелина на линиите · ◀▶ часовник / ветрило',
       render: function () {
-        st.idx = Math.max(st.idx, 0);
-        var W = innerWidth, Hh = innerHeight, fan = st.alt % 2 === 1;
-        var R = Math.min(W * 0.46, Hh * (fan ? 0.8 : 0.44)), sw = Math.max(1, letterPx(st.idx) / 5), cy = fan ? R * 1.06 : R * 1.12;
+        var W = innerWidth, Hh = availH(), fan = st.alt % 2 === 1;
+        var R = Math.min(W * 0.46, Hh * (fan ? 0.8 : 0.44)), sw = Math.max(1 / dpr(), letterPx(st.idx) / 5), cy = fan ? R * 1.06 : R * 1.12;
         var svg = '<svg width="' + (2.24 * R).toFixed(0) + '" height="' + (fan ? R * 1.18 : R * 2.24).toFixed(0) + '" viewBox="' + (-1.12 * R) + ' ' + (-cy) + ' ' + 2.24 * R + ' ' + (fan ? R * 1.18 : 2.24 * R) + '">';
         var g = '<g stroke="#000" stroke-width="' + sw.toFixed(2) + '">';
         var angles = [];
@@ -239,14 +270,21 @@
           }
         });
         g += '</g>';
-        var fs = R * 0.075, lab = '<g font-family="Arial,sans-serif" font-weight="700" font-size="' + fs.toFixed(1) + '" text-anchor="middle" fill="#000">';
+        var fs = R * (fan ? 0.052 : 0.075), lab = '<g font-family="Arial,sans-serif" font-weight="700" font-size="' + fs.toFixed(1) + '" text-anchor="middle" fill="#000">';
         if (fan) {
-          for (var d = 0; d <= 180; d += 30) { var tt = d * Math.PI / 180; lab += '<text x="' + (Math.cos(tt) * R * 0.95).toFixed(1) + '" y="' + (-Math.sin(tt) * R * 0.95 + fs * 0.35).toFixed(1) + '">' + d + '°</text>'; }
+          // Числото до всяка линия е оста на минус цилиндъра (перпендикулярна на линията, в TABO):
+          // хоризонталната линия е 90, вертикалната 180, а наклонената към дясното рамо на пациента < 90.
+          for (var d = 0; d <= 180; d += 10) {
+            var axis = (270 - d) % 180 || 180, tt = d * Math.PI / 180;
+            lab += '<text x="' + (Math.cos(tt) * R * 0.94).toFixed(1) + '" y="' + (-Math.sin(tt) * R * 0.94 + fs * 0.35).toFixed(1) + '">' + axis + '</text>';
+          }
         } else {
           for (var n = 1; n <= 12; n++) { var tn = (90 - n * 30) * Math.PI / 180; lab += '<text x="' + (Math.cos(tn) * R * 0.97).toFixed(1) + '" y="' + (-Math.sin(tn) * R * 0.97 + fs * 0.35).toFixed(1) + '">' + n + '</text>'; }
         }
         stage.innerHTML = svg + g + lab + '</g></svg>';
-        return (fan ? 'Ветрило (TABO)' : 'Часовник') + ' · линия ' + sw.toFixed(1).replace('.', ',') + ' px (' + vaLabel(st.idx) + ')';
+        return (fan ? 'Ветрило: числото при най-ясната линия е оста на минус цилиндъра'
+                    : 'Часовник: по-малкото число при най-ясната линия × 30 = ос на минус цилиндъра') +
+          ' · линия ' + fmtNum(sw * dpr(), 1) + ' пиксела';
       },
       up: function () { st.idx--; }, down: function () { st.idx++; },
       left: function () { st.alt++; }, right: function () { st.alt++; }, ok: function () {}
@@ -255,12 +293,12 @@
       title: 'Крос цилиндър', bg: function () { return '#fff'; },
       keys: '▲▼ размер · ◀▶ точки / кръгове / букви · OK нови букви',
       render: function () {
-        st.idx = Math.max(st.idx, maxIdxFit(0.14));
+        clampIdx(0.14);
         var p = letterPx(st.idx), sw = p / 5, kind = st.alt % 3, h = '';
         if (kind === 2) {
           h = lineHTML('sloan', itemsFor('sloan', st.idx, fitCount(p, 5)), p, '#000');
         } else {
-          var R = Math.min(p * 3, Math.min(innerWidth, innerHeight) * 0.42), body = '';
+          var R = Math.min(p * 3, Math.min(innerWidth, availH()) * 0.42), body = '';
           if (kind === 0) {
             var step = sw * 2, rr = sw / 2;
             for (var y = -R; y <= R; y += step * 0.866) {
@@ -285,8 +323,8 @@
       title: 'Бинокулярен баланс', bg: function () { return '#fff'; },
       keys: '▲▼ размер · ◀▶ призми / червено-зелени очила · OK нови букви',
       render: function () {
-        clampIdx();
-        var p = letterPx(st.idx), rg = st.alt % 2 === 1, n = fitCount(p, 5), it = itemsFor('sloan', st.idx, n);
+        clampIdx(0.2); // два реда с полета трябва да се съберат по височина
+        var p = letterPx(st.idx), rg = st.alt % 2 === 1, n = fitCount(p * 1.3, 5), it = itemsFor('sloan', st.idx, n);
         if (!rg) {
           stage.innerHTML = lineHTML('sloan', it, p, '#000');
           return 'Призмена дисоциация (вертикални призми във фороптера) · ' + vaLabel(st.idx) + ' · ' + fmtDist();
@@ -303,16 +341,15 @@
       title: 'Worth 4 точки', bg: function () { return '#000'; },
       keys: '▲▼ размер · нужни са червено-зелени очила',
       render: function () {
-        st.idx = Math.max(0, Math.min(LOGMAR.length - 1, st.idx));
-        var D = Math.max(6, Math.min(Math.min(innerWidth, innerHeight) * 0.22, 20 * Math.pow(1.26, 10 - st.idx) * 4)), g = D * 1.7;
+        var D = Math.max(6, Math.min(Math.min(innerWidth, availH()) * 0.22, 20 * Math.pow(1.26, 10 - st.idx) * 4)), g = D * 1.7;
         var dot = function (x, y, c) { return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (D / 2).toFixed(1) + '" fill="' + c + '"/>'; };
         var W = 2 * g + D + 4;
         stage.innerHTML = '<svg width="' + W.toFixed(0) + '" height="' + W.toFixed(0) + '" viewBox="' + (-W / 2) + ' ' + (-W / 2) + ' ' + W + ' ' + W + '">' +
           dot(0, -g, '#FF2A2A') + dot(-g, 0, '#00C000') + dot(g, 0, '#00C000') + dot(0, g, '#FFFFFF') + '</svg>';
         var ang = Math.atan((2 * g + D) * mmPx() / (S.distance * 1000)) * 180 / Math.PI;
-        return 'Ъглов размер ≈ ' + ang.toFixed(1).replace('.', ',') + '° · ' + fmtDist();
+        return 'Ъглов размер ≈ ' + fmtNum(ang, 1) + '° · ' + fmtDist();
       },
-      up: function () { st.idx--; if (st.idx < 0) st.idx = 0; }, down: function () { st.idx++; }, left: function () {}, right: function () {}, ok: function () {}
+      up: function () { st.idx--; }, down: function () { st.idx++; }, left: function () {}, right: function () {}, ok: function () {}
     },
     maddox: {
       title: 'Мадокс скала', bg: function () { return '#000'; },
@@ -320,17 +357,18 @@
       render: function () {
         var p = S.distance * 10 / mmPx(), every = 1; // 1Δ = 1 см на всеки метър
         while (p * every < 46) every = every === 1 ? 2 : every === 2 ? 5 : every + 5;
-        var W = innerWidth, H = innerHeight, mode = st.alt % 3, s = '<svg width="' + W + '" height="' + H + '" viewBox="' + (-W / 2) + ' ' + (-H / 2) + ' ' + W + ' ' + H + '"><g fill="#fff" stroke="#fff" font-family="Arial,sans-serif" font-weight="700" font-size="' + Math.max(18, Math.min(40, p * every * 0.45)).toFixed(0) + '" text-anchor="middle">';
-        var fs = Math.max(18, Math.min(40, p * every * 0.45));
-        if (mode !== 1) for (var k = every; k * p < W / 2 - fs; k += every) {
-          [-1, 1].forEach(function (sg) { s += '<line x1="' + (sg * k * p) + '" y1="-8" x2="' + (sg * k * p) + '" y2="8" stroke-width="3"/><text stroke="none" x="' + (sg * k * p) + '" y="' + (fs + 14) + '">' + k + '</text>'; });
-        }
-        if (mode !== 0) for (var m = every; m * p < H / 2 - fs; m += every) {
-          [-1, 1].forEach(function (sg) { s += '<line x1="-8" y1="' + (sg * m * p) + '" x2="8" y2="' + (sg * m * p) + '" stroke-width="3"/><text stroke="none" text-anchor="start" x="16" y="' + (sg * m * p + fs * 0.35) + '">' + m + '</text>'; });
-        }
-        s += '<circle r="7" fill="#fff" stroke="none"/></g></svg>';
+        var W = innerWidth, H = availH(), mode = st.alt % 3, fs = Math.max(18, Math.min(40, p * every * 0.45));
+        var s = '<svg width="' + W + '" height="' + H + '" viewBox="' + (-W / 2) + ' ' + (-H / 2) + ' ' + W + ' ' + H + '"><g fill="#fff" font-family="Arial,sans-serif" font-weight="700" font-size="' + fs.toFixed(0) + '" text-anchor="middle">';
+        // Числата стоят върху самите оси (чертичка до числото се чете като минус); точките са междинните Δ.
+        var mark = function (x, y, n) {
+          if (n % every === 0) s += '<text x="' + x.toFixed(1) + '" y="' + (y + fs * 0.35).toFixed(1) + '">' + n + '</text>';
+          else if (p >= 12) s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.5"/>';
+        };
+        if (mode !== 1) for (var k = 1; k * p < W / 2 - fs; k++) { mark(k * p, 0, k); mark(-k * p, 0, k); }
+        if (mode !== 0) for (var m = 1; m * p < H / 2 - fs * 0.7; m++) { mark(0, m * p, m); mark(0, -m * p, m); }
+        s += '<circle r="7"/></g></svg>';
         stage.innerHTML = s;
-        return ['Хоризонтална', 'Вертикална', 'Двете'][mode] + ' скала · 1Δ = ' + (S.distance).toFixed(1).replace('.', ',') + ' см · ' + fmtDist();
+        return ['Хоризонтална', 'Вертикална', 'Двете'][mode] + ' скала · 1Δ = ' + fmtNum(S.distance, 1) + ' см · ' + fmtDist();
       },
       up: function () {}, down: function () {}, left: function () { st.alt = (st.alt + 2) % 3; }, right: function () { st.alt = (st.alt + 1) % 3; }, ok: function () {}
     }
@@ -350,50 +388,63 @@
     ['maddox', 'Мадокс скала', 'фория в Δ']
   ];
 
-  /* ---------- Навигация между екрани ---------- */
+  /* ---------- Навигация между екрани ----------
+     Началният екран е на дълбочина 0, всеки друг екран – на дълбочина 1 в историята на браузъра.
+     Така бутонът Назад (и на дистанционното в приложението) винаги връща към началния екран. */
   var cur = null; // текущ тест
+  var navDepth = 0;
   function showView(v) {
     [home, settings, calib, test].forEach(function (el) { el.hidden = el !== v; });
     if (v !== test) { cur = null; document.body.classList.remove('testing'); }
   }
+  function leaveHome() { if (!home.hidden) { try { history.pushState({ kab: 1 }, ''); navDepth++; } catch (e) {} } }
   function openTest(key) {
-    cur = SCREENS[key]; cur.key = key; st.alt = 0;
+    leaveHome();
+    cur = SCREENS[key]; st.alt = 0;
     if (key === 'worth') st.idx = 10;
     showView(test); document.body.classList.add('testing');
-    pushNav();
     draw();
+  }
+  function openSettings() { leaveHome(); showView(settings); renderSettings(); focusFirst(settings); }
+  function openCalib() {
+    leaveHome(); cw = 0; showView(calib); renderCalib();
+    var c = calib.querySelector('[data-go="calsave"]'); if (c) c.focus();
   }
   function draw() {
     if (!cur) return;
+    st.idx = Math.max(0, Math.min(LAST, st.idx));
     test.style.background = cur.bg();
     stage.style.transform = S.mirror ? 'scaleX(-1)' : '';
+    stage.style.paddingBottom = S.labels ? INFO_H + 'px' : '';
     var v = cur.render();
     info.innerHTML = '<b>' + esc(cur.title) + '</b> · ' + esc(v) + '<br><span>' + esc(cur.keys) + ' · Назад – меню</span>';
     info.hidden = !S.labels;
     info.style.color = cur.bg() === '#000' ? '#8a9aa6' : '#667788';
   }
   function goHome() { showView(home); renderHome(); focusFirst(home); }
-  var navDepth = 0;
-  function pushNav() { try { history.pushState({ kab: 1 }, ''); navDepth++; } catch (e) {} }
   function back() {
-    if (home.hidden) { if (navDepth > 0) { history.back(); } else goHome(); }
+    if (!home.hidden) return;
+    if (navDepth > 0) history.back(); else goHome();
   }
-  window.addEventListener('popstate', function () { navDepth = Math.max(0, navDepth - 1); if (!home.hidden) return; goHome(); });
+  function onPop() { navDepth = Math.max(0, navDepth - 1); if (home.hidden) goHome(); }
 
   /* ---------- Начален екран ---------- */
   function renderHome() {
-    var cal = S.mmPerPx ? '<span class="ok">● Калибриран (' + esc(screenKey()) + ')</span>' : '<span class="warn">● Не е калибриран – размерите са приблизителни</span>';
-    var h = '<header class="khead"><div><p class="eyebrow">iOptics · Кабинет</p><h1>Таблица за зрение</h1></div>' +
+    var cal = calibrated() ? '<span class="ok">● Калибриран · екран ≈ ' + fmtNum(mmPx() * screenDiagPx() / 25.4, 0) + '″</span>'
+      : S.pitch > 0 ? '<span class="warn">● Екранът е сменен – калибрирайте отново</span>'
+      : '<span class="warn">● Не е калибриран – размерите са приблизителни</span>';
+    var h = '<header class="khead"><div><p class="eyebrow">i.Optics · Кабинет</p><h1>Таблица за зрение</h1></div>' +
       '<div class="kstat">' + cal + '<span>Разстояние ' + esc(fmtDist()) + (S.mirror ? ' · огледало' : '') + '</span>' + (user ? '<span>' + esc(user) + '</span>' : '') + '</div></header><div class="tiles">';
     TILES.forEach(function (t, i) {
       h += '<button class="tile" data-nav data-open="' + t[0] + '"><span class="tn">' + (i < 9 ? (i + 1) : '') + '</span><b>' + esc(t[1]) + '</b><small>' + esc(t[2]) + '</small></button>';
     });
-    h += '</div><div class="hrow"><button class="btn" data-nav data-go="settings">Настройки</button><button class="btn" data-nav data-go="calib">Калибриране</button>' + (window.KabinetAndroid ? '' : '<button class="btn" data-nav data-go="fs">Цял екран</button>') + '<button class="btn ghost" data-nav data-go="logout">Изход</button></div>' +
-      '<p class="khint">Стрелки и OK на дистанционното · цифри 1–9 отварят тест директно · Назад връща тук' + (window.KabinetAndroid ? ', два пъти Назад – изход.' : '.') + '</p>';
+    h += '</div><div class="hrow"><button class="btn" data-nav data-go="settings">Настройки</button><button class="btn" data-nav data-go="calib">Калибриране</button>' +
+      (window.KabinetAndroid ? '' : '<button class="btn" data-nav data-go="fs">Цял екран</button>') +
+      '<button class="btn ghost" data-nav data-go="logout">Изход от акаунта</button></div>' +
+      '<p class="khint">Стрелки и OK · цифри 1–9 отварят тест · Назад връща тук' + (window.KabinetAndroid ? ', два пъти Назад затваря приложението' : '') + ' · версия ' + VERSION + '</p>';
     home.innerHTML = h;
   }
   /* ---------- Настройки ---------- */
-  var NOT = [['dec', 'десетична (V 1,0)'], ['m', 'Snellen 6/6'], ['ft', 'Snellen 20/20'], ['logmar', 'logMAR']];
   function renderSettings(keepFocus) {
     var ni = 0; NOT.forEach(function (n, i) { if (n[0] === S.notation) ni = i; });
     var rows = [
@@ -405,46 +456,72 @@
     ];
     var h = '<header class="khead"><div><p class="eyebrow">Кабинет</p><h1>Настройки</h1></div></header><div class="srows">';
     rows.forEach(function (r) { h += '<button class="srow" data-nav data-set="' + r[0] + '"><span><b>' + esc(r[1]) + '</b>' + (r[3] ? '<small>' + esc(r[3]) + '</small>' : '') + '</span><em>' + esc(r[2]) + '</em></button>'; });
-    h += '</div><div class="hrow"><button class="btn primary" data-nav data-go="home">Готово</button></div><p class="khint">◀ ▶ променят стойността, OK превключва. Настройките се пазят на това устройство.</p>';
+    h += '</div><div class="hrow"><button class="btn primary" data-nav data-go="home">Готово</button></div>' +
+      '<p class="khint">◀ ▶ променят стойността, OK превключва. Разстоянието, огледалото и калибрирането се пазят на това устройство, останалите настройки – в акаунта ви.</p>';
     settings.innerHTML = h;
     if (keepFocus) { var el = settings.querySelector('[data-set="' + keepFocus + '"]'); if (el) el.focus(); }
   }
   function adjSetting(k, dir) {
     if (k === 'dist') S.distance = Math.round(Math.max(1, Math.min(8, S.distance + dir * 0.1)) * 10) / 10;
-    else if (k === 'not') { var ni = 0; NOT.forEach(function (n, i) { if (n[0] === S.notation) ni = i; }); S.notation = NOT[(ni + (dir || 1) + NOT.length) % NOT.length][0]; }
+    else if (k === 'not') { var ni = 0; NOT.forEach(function (n, i) { if (n[0] === S.notation) ni = i; }); S.notation = NOT[(ni + dir + NOT.length) % NOT.length][0]; }
     else if (k === 'mirror') S.mirror = !S.mirror;
     else if (k === 'inv') S.inverse = !S.inverse;
     else if (k === 'lab') S.labels = !S.labels;
-    saveS(); renderSettings(k);
+    if (k === 'dist' || k === 'mirror') saveS(); else savePrefs();
+    renderSettings(k);
   }
-  /* ---------- Калибриране ---------- */
-  var cw = 0;
+  /* ---------- Калибриране ----------
+     cw е ширината на рамката в CSS пиксели. ◀▶ я променят с един физически пиксел,
+     ▲▼ – така, че да отговаря на екран с 1 инч по-голям или по-малък диагонал. */
+  var CARD_W = 85.6, CARD_H = 53.98, cw = 0;
+  function cwLimit(v) { return Math.max(16, Math.min(innerWidth - 24, v)); }
+  function cwDiag() { return CARD_W / cw * screenDiagPx() / 25.4; } // диагонал на екрана в инчове при тази рамка
   function renderCalib() {
-    if (!cw) cw = Math.round(85.6 / mmPx());
-    var ch = cw * 53.98 / 85.6;
-    calib.innerHTML = '<header class="khead"><div><p class="eyebrow">Кабинет</p><h1>Калибриране с карта</h1></div></header>' +
-      '<p class="lead">Допрете банкова или друга карта със стандартен размер (85,6 × 54 мм) до екрана. Променяйте рамката, докато съвпадне точно с картата.</p>' +
-      '<div class="cardbox"><div class="card" style="width:' + cw + 'px;height:' + ch.toFixed(1) + 'px"></div></div>' +
-      '<p class="khint">◀ ▶ с 1 пиксел · ▲ ▼ с 10 пиксела · OK запазва. В менюто на телевизора изключете overscan („Just Scan“ / „Screen Fit“ / „Цял пиксел“).</p>' +
-      '<div class="hrow"><button class="btn" data-nav data-cal="-10">−10</button><button class="btn" data-nav data-cal="-1">−1</button><button class="btn" data-nav data-cal="1">+1</button><button class="btn" data-nav data-cal="10">+10</button><button class="btn primary" data-nav data-go="calsave">Запази</button><button class="btn ghost" data-nav data-go="home">Отказ</button></div>';
+    if (!cw) cw = calibrated() ? CARD_W / mmPx()
+      : window.KabinetAndroid ? CARD_W * screenDiagPx() / (43 * 25.4) // телевизор: започваме от 43″
+      : CARD_W / mmPx();
+    cw = cwLimit(cw);
+    calib.innerHTML = '<header class="khead"><div><p class="eyebrow">Кабинет</p><h1>Калибриране</h1></div></header>' +
+      '<p class="lead">Нагласете размера на екрана в инчове, после допрете банкова карта (85,6 × 54 мм) до екрана и донагласете рамката, докато съвпадне точно с картата.</p>' +
+      '<div class="cardbox"><div class="card"></div></div>' +
+      '<p class="calinfo" id="k-calinfo"></p>' +
+      '<div class="hrow"><button class="btn" data-nav data-cal="d-1">−1″</button><button class="btn" data-nav data-cal="p-1">−1 пиксел</button><button class="btn" data-nav data-cal="p1">+1 пиксел</button><button class="btn" data-nav data-cal="d1">+1″</button><button class="btn primary" data-nav data-go="calsave">Запази</button><button class="btn ghost" data-nav data-go="home">Отказ</button></div>' +
+      '<p class="khint">▲ ▼ размер на екрана с 1 инч · ◀ ▶ рамката с 1 пиксел · OK запазва. На телевизор изключете overscan от менюто за картина („Just Scan“ / „Screen Fit“).</p>';
+    calShow();
   }
-  function calAdj(d) { cw = Math.max(80, Math.min(innerWidth - 20, cw + d)); var c = calib.querySelector('.card'); if (c) { c.style.width = cw + 'px'; c.style.height = (cw * 53.98 / 85.6).toFixed(1) + 'px'; } }
-  function calSave() { S.mmPerPx = 85.6 / cw; saveS(); goHome(); }
+  function calShow() {
+    var c = calib.querySelector('.card'), t = $('k-calinfo');
+    if (c) { c.style.width = cw.toFixed(2) + 'px'; c.style.height = (cw * CARD_H / CARD_W).toFixed(2) + 'px'; }
+    if (t) t.textContent = 'Екран ≈ ' + fmtNum(cwDiag(), 1) + '″ (' + Math.round(cwDiag() * 2.54) + ' см по диагонал) · рамка ' + fmtNum(cw * dpr(), 0) + ' пиксела';
+  }
+  function calPixel(n) { cw = cwLimit(cw + n / dpr()); calShow(); }
+  function calInch(n) { // към следващия цял инч
+    var d = cwDiag(), target = n > 0 ? Math.floor(d + 1e-6) + 1 : Math.ceil(d - 1e-6) - 1;
+    target = Math.max(5, Math.min(150, target));
+    cw = cwLimit(CARD_W * screenDiagPx() / (target * 25.4)); calShow();
+  }
+  function calSave() { S.pitch = CARD_W / cw / dpr(); S.calScreen = screenKey(); saveS(); back(); }
 
   /* ---------- Пространствена навигация ---------- */
   function navEls(v) { return Array.prototype.slice.call(v.querySelectorAll('[data-nav]')); }
   function focusFirst(v) { var e = navEls(v)[0]; if (e) e.focus(); }
+  // Мести фокуса към най-близкия бутон в посоката на стрелката. Наляво/надясно – само в същия ред
+  // (за да не „прескача“ от първата плочка към бутоните долу); нагоре/надолу – към най-близкия ред,
+  // с предимство за бутона точно под/над текущия.
   function moveFocus(v, dir) {
     var els = navEls(v), a = document.activeElement;
     if (els.indexOf(a) < 0) { focusFirst(v); return; }
-    var r = a.getBoundingClientRect(), ax = r.left + r.width / 2, ay = r.top + r.height / 2, best = null, bd = 1e9;
+    var r = a.getBoundingClientRect(), horiz = dir === 'left' || dir === 'right', best = null, bd = Infinity;
     els.forEach(function (e) {
       if (e === a) return;
-      var q = e.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2, dx = x - ax, dy = y - ay, main, side;
-      if (dir === 'left') { main = -dx; side = Math.abs(dy); } else if (dir === 'right') { main = dx; side = Math.abs(dy); }
-      else if (dir === 'up') { main = -dy; side = Math.abs(dx); } else { main = dy; side = Math.abs(dx); }
-      if (main <= 2) return;
-      var d = main + side * 2.5;
+      var q = e.getBoundingClientRect(), main, gap, off;
+      if (dir === 'left') main = r.left - q.right; else if (dir === 'right') main = q.left - r.right;
+      else if (dir === 'up') main = r.top - q.bottom; else main = q.top - r.bottom;
+      if (main < -2) return; // не е в тази посока
+      if (horiz) { gap = Math.max(0, q.top - r.bottom, r.top - q.bottom); off = Math.abs(q.top + q.bottom - r.top - r.bottom) / 2; }
+      else { gap = Math.max(0, q.left - r.right, r.left - q.right); off = Math.abs(q.left + q.right - r.left - r.right) / 2; }
+      if (horiz && gap > 0) return;
+      var d = main + gap * 3 + off * 0.05;
       if (d < bd) { bd = d; best = e; }
     });
     if (best) { best.focus(); best.scrollIntoView({ block: 'nearest' }); }
@@ -452,16 +529,17 @@
 
   /* ---------- Клавиши ---------- */
   var KC = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'ok', 27: 'back', 8: 'back', 10009: 'back', 461: 'back', 403: 'red', 404: 'green', 405: 'yellow', 406: 'blue', 457: 'info' };
-  var KK = { ArrowLeft: 'left', ArrowUp: 'up', ArrowRight: 'right', ArrowDown: 'down', Enter: 'ok', ' ': 'ok', Escape: 'back', Backspace: 'back', GoBack: 'back', BrowserBack: 'back', ColorF0Red: 'red', ColorF1Green: 'green', ColorF2Yellow: 'yellow', ColorF3Blue: 'blue', Info: 'info', i: 'info', I: 'info', m: 'mirror' };
+  var KK = { ArrowLeft: 'left', ArrowUp: 'up', ArrowRight: 'right', ArrowDown: 'down', Enter: 'ok', ' ': 'ok', Escape: 'back', Backspace: 'back', GoBack: 'back', BrowserBack: 'back', ColorF0Red: 'red', ColorF1Green: 'green', ColorF2Yellow: 'yellow', ColorF3Blue: 'blue', Info: 'info', i: 'info', I: 'info', m: 'mirror', M: 'mirror' };
+  var ARROWS = { left: 1, right: 1, up: 1, down: 1 };
   function keyName(e) {
     if (e.key && KK[e.key]) return KK[e.key];
     if (KC[e.keyCode]) return KC[e.keyCode];
-    if (/^[0-9]$/.test(e.key || '')) return 'd' + e.key;
-    if (e.keyCode >= 48 && e.keyCode <= 57) return 'd' + (e.keyCode - 48);
+    if (/^[0-9]$/.test(e.key || '')) return 'digit' + e.key;
+    if (e.keyCode >= 48 && e.keyCode <= 57) return 'digit' + (e.keyCode - 48);
     return null;
   }
   function onKey(e) {
-    if (root.hidden) return;
+    if (root.hidden || e.ctrlKey || e.altKey || e.metaKey) return;
     var k = keyName(e); if (!k) return;
     var t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
@@ -471,43 +549,54 @@
     if (k === 'green') return openTest('sloan');
     if (k === 'yellow') return openTest('astig');
     if (k === 'blue') return openTest('jcc');
-    if (k.charAt(0) === 'd' && k !== 'd0') { var tl = TILES[+k.slice(1) - 1]; if (tl) openTest(tl[0]); return; }
+    if (k.indexOf('digit') === 0 && k !== 'digit0') { openTest(TILES[+k.slice(5) - 1][0]); return; }
     if (cur) {
-      if (k === 'info' || k === 'd0') { S.labels = !S.labels; saveS(); draw(); return; }
+      if (k === 'info' || k === 'digit0') { S.labels = !S.labels; savePrefs(); draw(); return; }
       if (k === 'mirror') { S.mirror = !S.mirror; saveS(); draw(); return; }
       if (cur[k]) { cur[k](); draw(); }
       return;
     }
     var v = !home.hidden ? home : !settings.hidden ? settings : calib;
-    if (v === calib && (k === 'left' || k === 'right' || k === 'up' || k === 'down')) {
-      calAdj(k === 'left' ? -1 : k === 'right' ? 1 : k === 'up' ? 10 : -10); return;
+    if (v === calib && ARROWS[k]) {
+      if (k === 'left') calPixel(-1); else if (k === 'right') calPixel(1); else calInch(k === 'up' ? 1 : -1);
+      return;
     }
     var a = document.activeElement;
     if (v === settings && a && a.getAttribute('data-set') && (k === 'left' || k === 'right')) { adjSetting(a.getAttribute('data-set'), k === 'left' ? -1 : 1); return; }
-    if (k === 'ok') { if (a && a.click) a.click(); return; }
-    if (k === 'left' || k === 'right' || k === 'up' || k === 'down') moveFocus(v, k);
+    if (k === 'ok') { if (a && v.contains(a) && a.click) a.click(); else focusFirst(v); return; }
+    if (ARROWS[k]) moveFocus(v, k);
   }
 
   function onClick(e) {
     var b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
     if (b.dataset.open) { goFull(); openTest(b.dataset.open); }
     else if (b.dataset.set) adjSetting(b.dataset.set, 1);
-    else if (b.dataset.cal) calAdj(+b.dataset.cal);
+    else if (b.dataset.cal) { var n = +b.dataset.cal.slice(1); if (b.dataset.cal.charAt(0) === 'p') calPixel(n); else calInch(n); }
     else if (b.dataset.ctl) { var k = b.dataset.ctl; if (k === 'back') back(); else if (cur && cur[k]) { cur[k](); draw(); } }
     else if (b.dataset.go) {
       var g = b.dataset.go;
-      if (g === 'home') goHome();
-      else if (g === 'settings') { showView(settings); renderSettings(); focusFirst(settings); }
-      else if (g === 'calib') { cw = 0; showView(calib); renderCalib(); var c = calib.querySelector('[data-go="calsave"]'); if (c) c.focus(); }
+      if (g === 'home') back();
+      else if (g === 'settings') openSettings();
+      else if (g === 'calib') openCalib();
       else if (g === 'calsave') calSave();
       else if (g === 'fs') goFull(true);
-      else if (g === 'logout') { if (window.KabinetLogout) window.KabinetLogout(); }
+      else if (g === 'logout') {
+        // Изисква второ натискане, за да не се излезе от акаунта случайно с дистанционното.
+        if (b.dataset.armed) { if (window.KabinetLogout) window.KabinetLogout(); return; }
+        b.dataset.armed = '1'; b.textContent = 'Натиснете пак за изход';
+        setTimeout(function () { delete b.dataset.armed; b.textContent = 'Изход от акаунта'; }, 4000);
+      }
     }
   }
   function goFull(force) {
     var d = document.documentElement;
     if (document.fullscreenElement) { if (force && document.exitFullscreen) document.exitFullscreen(); return; }
     try { if (d.requestFullscreen) d.requestFullscreen().catch(function () {}); } catch (e) {}
+  }
+  // В браузър: екранът да не заспива по време на преглед (в приложението това го прави Android).
+  function keepAwake() {
+    if (window.KabinetAndroid || !navigator.wakeLock || !root || root.hidden || document.visibilityState !== 'visible') return;
+    try { navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
   }
 
   /* ---------- Контроли с мишка / тъч ---------- */
@@ -516,6 +605,8 @@
 
   /* ---------- Старт ---------- */
   window.Kabinet = {
+    version: VERSION,
+    // opts.save(patch) записва предпочитанията в акаунта; opts.data са записаните досега (ако вече са заредени).
     start: function (name, opts) {
       user = name || '';
       opts = opts || {};
@@ -530,10 +621,24 @@
         root.addEventListener('click', onClick);
         test.addEventListener('pointermove', pointerShow);
         test.addEventListener('pointerdown', pointerShow);
-        window.addEventListener('resize', function () { if (cur) draw(); });
+        window.addEventListener('popstate', onPop);
+        window.addEventListener('resize', function () { if (cur) draw(); else if (!calib.hidden) calShow(); else if (!home.hidden) renderHomeKeepFocus(); });
+        document.addEventListener('visibilitychange', keepAwake);
       }
       goHome();
+      keepAwake();
+    },
+    // Предпочитанията от акаунта пристигат след старта (или изобщо не пристигат без интернет).
+    sync: function (data) {
+      if (!root || root.hidden || !applyRemote(data)) return;
+      if (cur) draw();
+      else if (!settings.hidden) { var a = document.activeElement; renderSettings(a && a.getAttribute('data-set')); if (!settings.contains(document.activeElement)) focusFirst(settings); }
     },
     stop: function () { if (root) root.hidden = true; }
   };
+  function renderHomeKeepFocus() {
+    var a = document.activeElement, sel = a && home.contains(a) ? (a.dataset.open ? '[data-open="' + a.dataset.open + '"]' : a.dataset.go ? '[data-go="' + a.dataset.go + '"]' : '') : '';
+    renderHome();
+    var el = sel && home.querySelector(sel); if (el) el.focus(); else focusFirst(home);
+  }
 })();
